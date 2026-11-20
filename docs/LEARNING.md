@@ -74,6 +74,23 @@ Every time is stored in **UTC** (London winter time, no daylight saving), so tim
 compare directly. Example: the Prague exchange shows `16:35:00` local time; that is stored as `15:35:00+00:00`.
 Daily-only sources (FRED, the BoE, the ECB) store just a date, e.g. `2026-11-18`: they publish one number per day.
 
+### Saved sample files (test fixtures)
+A test of a file reader needs a file. `tests/samples/` holds small trimmed copies of what the sources really sent on
+2026-11-20: the Bank of England's Excel workbook, the MNB's old-format `.xls` BUBOR file, ÁKK's JSON and a slice of the
+Budapest exchange's page. The tests feed them to the same parsers a real download goes through, so if a source changes
+its format, a fresh sample shows exactly what broke. Example: in the BUBOR file the column names switched from
+Hungarian (`3hónap`) to English (`3months`) in 2023, and the sample includes one sheet of each.
+
+### Excel files: .xlsx and .xls
+`.xlsx` (Excel since 2007) is a zip of XML files, read with `openpyxl`. `.xls` is the older binary format, read with
+`xlrd`. Excel stores dates as a **day number** counted from 30 Dec 1899: in the BUBOR file `46027` means 5 Jan 2026.
+
+### Price history file (`history/prices.csv`)
+One row per instrument per day: `2026-11-20,otp,38690.0,yahoo:OTP.BD`. The first run fills about two years from each
+source (a **backfill**); after that, the end-of-day run adds each day's close. The averages are worked out from this file,
+so a five-minute run only has to fetch today's prices. BUX, PX and WIG20 have no free history, so their averages fill in
+as our own closes build up (the 50-day average after 50 trading days, about ten weeks).
+
 ### Unit tests and mocks
 A **test** runs a function on a known input and checks the answer (`python -m unittest`). A **mock** swaps a real
 web call for a fake one, so the fallback logic can be tested offline: we pretend Yahoo failed and check the MNB
@@ -102,7 +119,8 @@ lending to Hungary (higher inflation, a weaker currency, higher risk).
 
 ### Basis points
 One **basis point (bp)** is 0.01 percentage point. Yields are compared in bp because the moves are small:
-a German 10-year going from 3.32% to 3.35% is "up 3 bp". Instruments marked `kind = "rate"` will get bp changes in phase 2.
+a German 10-year going from 3.38% to 3.32% is "down 6 bp" (2026-11-20). Everything marked `kind = "rate"` (yields,
+spreads, BUBOR) has its changes and distances in bp; everything else in %. `latest.json` says which in `change_unit`.
 
 ### Benchmark and spot yields
 A **benchmark** yield is the yield of one chosen, actively traded bond for each maturity (ÁKK's 10-year is the 2037/A bond).
@@ -113,6 +131,10 @@ The Bank of England publishes a **spot (zero-coupon) curve** instead: a smooth l
 ### The 2s10s spread (yield curve slope)
 10-year yield minus 2-year yield. Normally positive (lending longer pays more). When it goes **negative** ("inverted")
 markets expect rate cuts, often because of a coming slowdown. FRED's `T10Y2Y` was +0.28 points on 2026-11-19.
+
+**Hungary's curve is measured as 3s10s, not 2s10s**: ÁKK has no 2-year benchmark, so the slope is the 10-year minus
+the **3-year**. On 2026-11-20 that was 5.50% − 5.48% = +0.02 points: almost flat. It is calculated only from two yields
+of the same day, and must always be labelled 3s10s, because a 2s10s and a 3s10s are not directly comparable.
 
 ### BUBOR
 The Budapest interbank offered rate: what banks say they would charge each other for forint loans. The 3-month BUBOR
@@ -130,3 +152,47 @@ watched closely, but no free source exists, so it is listed as unavailable.
 ### VIX and VSTOXX
 "Fear gauges": the volatility (size of swings) that option prices imply for the next 30 days, for the S&P 500 (VIX) and
 the EURO STOXX 50 (VSTOXX). Around 12–20 is calm; 29.9 (VIX on 2026-11-20) signals a nervous market.
+
+## Indicators (phase 2)
+
+All of these are in `pipeline/indicators.py` and are tested with numbers worked out by hand in `tests/test_indicators.py`.
+
+### Daily change
+Today's value against the **previous close** (the last day's final value). For prices in %, for rates in bp.
+Example, 2026-11-20 at 16:25 UTC: S&P 500 −1.47%; German 10-year −6 bp. `prev_close_date` says which day it is compared with.
+
+### Simple moving average (SMA), 50-day and 200-day
+The average of the last 50 (or 200) daily closes. It smooths out the noise and shows the trend. Traders watch whether the
+price is **above** its 200-day average (a long-term uptrend) or **below** it. On 2026-11-20 the S&P 500 (7,071) was 7.3%
+below its 50-day average (7,628) and 3.8% below its 200-day one. When the price **crosses** an average between two runs,
+`crossed_sma50` or `crossed_sma200` says `"above"` or `"below"`: a common signal that a trend may be turning.
+
+### 52-week high and low
+The highest and lowest close of the past year. EUR/HUF at 373.73 was 5.3% below its 52-week high (394.71), so the forint
+was weaker than a few weeks earlier but stronger than at its worst point of the year. It is only shown once there is a
+full year of history: a "52-week high" from two weeks of data would look real but is not.
+
+### Realised volatility (20-day, annualised)
+How much the price actually moved over the last 20 trading days: the standard deviation of the daily moves (log returns
+for prices, bp changes for rates), times √252 to turn it into a yearly figure. The S&P 500's was 23.9% on 2026-11-20,
+nervous for an index that is usually around 12–18%. Compare it with **implied** volatility (phase 3), which is what option
+prices expect for the future: the VIX (30.2) is the S&P 500's implied volatility.
+
+### Market state
+For each instrument: `open`, `closed`, `pre-market` or `after-hours`, from the trading hours in `config/instruments.toml`
+and the exchange's own time zone (so summer time is handled). Pre-market and after-hours exist only in New York.
+Futures and FX trade almost around the clock from Sunday evening to Friday. Figures published once a day (FRED, the BoE,
+ÁKK, BUBOR) are always `closed`: they are final numbers for their date. There is no holiday calendar yet, so on a holiday a
+market shows `open` but its price time shows it did not move.
+
+### Sanity checks (`suspect`)
+Before a number is published, it is compared with the **last value that was not suspect**. A price of zero or below, or
+a move bigger than a set limit (20% for an index or commodity, 10% for an FX pair, 100% for VIX/VSTOXX, 100 bp for a yield
+or spread), marks it `suspect` with the reason. A suspect value is shown with a warning, is never saved into the price
+history, and the digest treats it as unavailable.
+
+A glitch and a real crash look the same at first, so the next run decides:
+- **Glitch:** the DAX shows 31,330 (+30%), then 24,120 on the next run. The second value is compared with the last good one
+  (24,100), so it is fine, and 31,330 never reaches the history.
+- **Real move:** the DAX shows 31,330, then 31,400 on the next run. Two runs in a row agree (within 1% for prices, 5 bp for
+  rates), so it is accepted as real (`confirmed_jump` says so) and goes into the history as normal.

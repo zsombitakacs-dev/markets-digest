@@ -1,0 +1,132 @@
+{
+ "meta": {
+  "function": "getBenchmarkLast",
+  "created": "2026-11-20 17:26:24",
+  "queryString": "query=getBenchmarkLast",
+  "lang": null,
+  "status": "OK",
+  "message": null
+ },
+ "fields": [
+  {
+   "name": "date",
+   "type": "date"
+  },
+  {
+   "name": "change",
+   "type": "double"
+  },
+  {
+   "name": "interestType",
+   "type": "string"
+  },
+  {
+   "name": "netPrice",
+   "type": "double"
+  },
+  {
+   "name": "accruedInterest",
+   "type": "double"
+  },
+  {
+   "name": "settleDate",
+   "type": "date"
+  },
+  {
+   "name": "tenor",
+   "type": "string"
+  },
+  {
+   "name": "avgAsk",
+   "type": "double"
+  },
+  {
+   "name": "securityType",
+   "type": "string"
+  },
+  {
+   "name": "maturityDate",
+   "type": "date"
+  },
+  {
+   "name": "yield",
+   "type": "double"
+  },
+  {
+   "name": "name",
+   "type": "string"
+  },
+  {
+   "name": "currency",
+   "type": "string"
+  },
+  {
+   "name": "isin",
+   "type": "string"
+  },
+  {
+   "name": "longName",
+   "type": "string"
+  },
+  {
+   "name": "avgBid",
+   "type": "double"
+  }
+ ],
+ "data": [
+  {
+   "date": "2026-11-20",
+   "change": 0.0,
+   "interestType": "FIX",
+   "netPrice": 101.4065,
+   "accruedInterest": 5.9342,
+   "settleDate": "2026-11-24",
+   "tenor": "3Y",
+   "avgAsk": 5.41,
+   "securityType": "KTV",
+   "maturityDate": "2029-11-28",
+   "yield": 5.48,
+   "name": "2029/C",
+   "currency": "HUF",
+   "isin": "HU0000407424",
+   "longName": "A291128C25",
+   "avgBid": 5.55
+  },
+  {
+   "date": "2026-11-20",
+   "change": -0.01,
+   "interestType": "FIX",
+   "netPrice": 105.9769,
+   "accruedInterest": 1.0616,
+   "settleDate": "2026-11-24",
+   "tenor": "10Y",
+   "avgAsk": 5.43,
+   "securityType": "KTV",
+   "maturityDate": "2037-09-23",
+   "yield": 5.5,
+   "name": "2037/A",
+   "currency": "HUF",
+   "isin": "HU0000407564",
+   "longName": "A370923A26",
+   "avgBid": 5.57
+  },
+  {
+   "date": "2026-11-20",
+   "change": 0.01,
+   "interestType": "FIX",
+   "netPrice": 102.5375,
+   "accruedInterest": 3.2055,
+   "settleDate": "2026-11-24",
+   "tenor": "5Y",
+   "avgAsk": 5.44,
+   "securityType": "KTV",
+   "maturityDate": "2033-07-27",
+   "yield": 5.52,
+   "name": "2033/C",
+   "currency": "HUF",
+   "isin": "HU0000407598",
+   "longName": "A330727C26",
+   "avgBid": 5.59
+  }
+ ]
+}

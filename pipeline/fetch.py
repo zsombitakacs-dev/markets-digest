@@ -7,6 +7,10 @@ Each source has one small function that returns (value, time). `time` is an ISO 
 string: a full UTC timestamp for live prices, or just a date (YYYY-MM-DD) for sources
 that publish one number per day. If a source fails, the instrument's fallback is tried;
 if that fails too, the value is recorded as missing with the reason. Nothing is estimated.
+
+Sources that can also give past daily closes have a history_<source>(symbol) function
+returning [(date, value), ...] oldest first (see HISTORY). It is used once per instrument
+to fill data/history/prices.csv; after that, each day's close is appended by pipeline.run.
 """
 import csv
 import functools
@@ -18,7 +22,7 @@ import re
 import tomllib
 import xml.etree.ElementTree as ET
 import zipfile
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -30,9 +34,13 @@ import yfinance as yf
 CONFIG = Path(__file__).resolve().parent.parent / "config" / "instruments.toml"
 
 
-def load_instruments():
+def load_config():
     with open(CONFIG, "rb") as f:
-        return tomllib.load(f)["instrument"]
+        return tomllib.load(f)
+
+
+def load_instruments():
+    return load_config()["instrument"]
 
 
 def now_utc():
@@ -50,6 +58,16 @@ def get(url, method="GET", data=None, headers=None):
     r = requests.request(method, url, data=data, headers=headers, timeout=30)
     r.raise_for_status()
     return r.content
+
+
+def last(rows):
+    """[(date, value), ...] -> (value, date) of the newest row, the shape fetch_* returns."""
+    day, value = rows[-1]
+    return value, day
+
+
+def two_years_ago():
+    return (date.today() - timedelta(days=730)).isoformat()
 
 
 # ---------- Yahoo Finance (most prices), batched into one request ----------
@@ -84,14 +102,35 @@ def fetch_yahoo(symbols):
     return out
 
 
+def history_yahoo(symbols):
+    """Return {symbol: [(date, close), ...]}: two years of daily closes, in one request."""
+    df = yf.download(symbols, period="2y", interval="1d", group_by="ticker",
+                     auto_adjust=False, progress=False, threads=True)
+    out = {}
+    for s in symbols:
+        try:
+            close = df[s]["Close"].dropna()
+        except KeyError:
+            continue
+        out[s] = [(ts.date().isoformat(), float(v)) for ts, v in close.items()]
+    return out
+
+
 # ---------- One function per other source: fetch(symbol) -> (value, time) ----------
 
+def parse_fred(text):
+    # FRED's CSV: "observation_date,DGS2" then one row per day. Missing days are "." or empty.
+    rows = list(csv.reader(io.StringIO(text)))[1:]
+    return [(d, float(v)) for d, v in rows if v not in ("", ".")]
+
+
+def history_fred(series):
+    # The CSV download needs no key and always holds the whole history.
+    return parse_fred(get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}").decode())
+
+
 def fetch_fred(series):
-    # FRED's CSV download needs no key. Missing days are written as "." or empty.
-    text = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}").decode()
-    rows = [r for r in csv.reader(io.StringIO(text))][1:]
-    date, value = [r for r in rows if r[1] not in ("", ".")][-1]
-    return float(value), date
+    return last(history_fred(series))
 
 
 def fetch_ecb(currency):
@@ -128,65 +167,120 @@ def fetch_mnb(currency):
     return parse_mnb(body, currency)
 
 
-def fetch_boe(years):
-    # Bank of England daily nominal spot curve: a zip holding an Excel file. Sheet
-    # "4. spot curve" has one row per day and one column per maturity (0.5y steps).
-    z = zipfile.ZipFile(io.BytesIO(get(
-        "https://www.bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/latest-yield-curve-data.zip")))
-    wb = openpyxl.load_workbook(io.BytesIO(z.read("GLC Nominal daily data current month.xlsx")),
-                                read_only=True, data_only=True)
+def parse_boe(xlsx, years):
+    # Bank of England nominal spot curve workbook. Sheet "4. spot curve" has a "years:" row
+    # naming the maturities (0.5y steps), then one row per day; days without data are blank.
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx), read_only=True, data_only=True)
     rows = list(wb["4. spot curve"].iter_rows(values_only=True))
     col = next(r for r in rows if r[0] == "years:").index(float(years))
-    day = [r for r in rows if isinstance(r[0], datetime) and isinstance(r[col], (int, float))][-1]
-    return float(day[col]), day[0].date().isoformat()
+    return [(r[0].date().isoformat(), float(r[col])) for r in rows
+            if isinstance(r[0], datetime) and isinstance(r[col], (int, float))]
+
+
+BOE_FILES = "https://www.bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/"
+
+
+def boe_current_month():
+    z = zipfile.ZipFile(io.BytesIO(get(BOE_FILES + "latest-yield-curve-data.zip")))
+    return z.read("GLC Nominal daily data current month.xlsx")
+
+
+def fetch_boe(years):
+    return last(parse_boe(boe_current_month(), years))
+
+
+def history_boe(years):
+    # The archive (about 40 MB, downloaded once per backfill) runs to the end of last month.
+    # shortcut: the file name "2025 to present" is how BoE names it in Nov 2026; if they start
+    # a new file (e.g. "2030 to present"), this raises KeyError and the backfill reports it.
+    z = zipfile.ZipFile(io.BytesIO(get(BOE_FILES + "glcnominalddata.zip")))
+    rows = dict(parse_boe(z.read("GLC Nominal daily data_2025 to present.xlsx"), years))
+    rows.update(parse_boe(boe_current_month(), years))
+    return sorted(rows.items())
+
+
+def parse_bundesbank(text):
+    # Bundesbank statistics API, CSV: header lines of metadata, then "date,value,flags".
+    rows = [r for r in csv.reader(io.StringIO(text)) if re.fullmatch(r"\d{4}-\d{2}-\d{2}", r[0] if r else "")]
+    return [(r[0], float(r[1])) for r in rows if r[1] not in ("", ".")]
+
+
+def history_bundesbank(key, n=800):  # counts calendar days: 800 is about two years
+    return parse_bundesbank(get(f"https://api.statistiken.bundesbank.de/rest/data/{key}"
+                                f"?format=csv&lang=en&lastNObservations={n}").decode())
 
 
 def fetch_bundesbank(key):
-    # Bundesbank statistics API, CSV: two header lines of metadata, then "date,value,".
-    text = get(f"https://api.statistiken.bundesbank.de/rest/data/{key}"
-               "?format=csv&lang=en&lastNObservations=5").decode()
-    rows = [r for r in csv.reader(io.StringIO(text)) if re.fullmatch(r"\d{4}-\d{2}-\d{2}", r[0] if r else "")]
-    date, value = [r[:2] for r in rows if r[1] not in ("", ".")][-1]
-    return float(value), date
+    return last(history_bundesbank(key, n=5))
+
+
+AKK_API = "https://www.akk.hu/api/data/xpose3-dwh/data?query="
+
+
+def parse_akk(body, tenor):
+    # ÁKK (Hungarian debt agency) benchmark yields: the JSON behind its own website,
+    # {"data": [{"date": "2026-11-20", "tenor": "10Y", "yield": 5.5, ...}, ...]}.
+    rows = [(r["date"], float(r["yield"])) for r in json.loads(body)["data"] if r["tenor"] == tenor]
+    if not rows:
+        raise ValueError(f"ÁKK has no {tenor} benchmark")
+    return sorted(rows)
 
 
 def fetch_akk(tenor):
-    # ÁKK (Hungarian debt agency) benchmark yields: the JSON behind its own website.
-    data = json.loads(get("https://www.akk.hu/api/data/xpose3-dwh/data?query=getBenchmarkLast"))["data"]
-    row = next(r for r in data if r["tenor"] == tenor)
-    return float(row["yield"]), row["date"]
+    return last(parse_akk(get(AKK_API + "getBenchmarkLast"), tenor))
+
+
+def history_akk(tenor):
+    # Not linked from the website, but listed in its API schema; tested 2026-11-20.
+    return parse_akk(get(AKK_API + "getBenchmark&dateStart=" + two_years_ago()), tenor)
+
+
+def parse_bubor(xls, column):
+    # MNB's BUBOR file: an old-format .xls with one sheet per year; row 1 holds the
+    # English column names, then one row per fixing day (date as an Excel day number).
+    book = xlrd.open_workbook(file_contents=xls)
+    rows = []
+    for name in (n for n in book.sheet_names() if n.isdigit()):
+        sheet = book.sheet_by_name(name)
+        # Skips a new year's sheet before its first fixing, and sheets before 2023, whose
+        # row 1 is in Hungarian ("3hónap", English in row 0); two years is all we need.
+        if sheet.nrows < 3 or column not in sheet.row_values(1):
+            continue
+        col = sheet.row_values(1).index(column)
+        for r in range(2, sheet.nrows):
+            day, value = sheet.cell_value(r, 0), sheet.cell_value(r, col)
+            if isinstance(day, float) and isinstance(value, float):  # skips "-" and notes
+                rows.append((xlrd.xldate_as_datetime(day, book.datemode).date().isoformat(), value))
+    if not rows:
+        raise ValueError("no BUBOR fixing found")
+    return sorted(rows)
+
+
+def history_mnb_bubor(column):
+    return parse_bubor(get("https://www.mnb.hu/letoltes/bubor2.xls"), column)
 
 
 def fetch_mnb_bubor(column):
-    # MNB's BUBOR file: an old-format .xls with one sheet per year; row 1 holds the
-    # English column names, then one row per fixing day (date as an Excel day number).
-    book = xlrd.open_workbook(file_contents=get("https://www.mnb.hu/letoltes/bubor2.xls"))
-    for name in sorted((n for n in book.sheet_names() if n.isdigit()), reverse=True):
-        sheet = book.sheet_by_name(name)
-        if sheet.nrows < 3:
-            continue  # e.g. a new year's sheet before its first fixing
-        col = sheet.row_values(1).index(column)
-        for r in range(sheet.nrows - 1, 1, -1):
-            day, value = sheet.cell_value(r, 0), sheet.cell_value(r, col)
-            if isinstance(day, float) and isinstance(value, float):
-                return value, xlrd.xldate_as_datetime(day, book.datemode).date().isoformat()
-    raise ValueError("no BUBOR fixing found")
+    return last(history_mnb_bubor(column))
 
 
 def parse_stoxx(text):
-    # Lines look like "19.11.2026;V2TX;22.5282" (day.month.year).
-    day, _, value = text.strip().splitlines()[-1].split(";")[:3]
-    return float(value), datetime.strptime(day, "%d.%m.%Y").date().isoformat()
+    # Lines look like "19.11.2026;V2TX;22.5282" (day.month.year), after a header line.
+    rows = [line.split(";") for line in text.strip().splitlines()[1:]]
+    return [(datetime.strptime(r[0], "%d.%m.%Y").date().isoformat(), float(r[2])) for r in rows]
 
 
-def fetch_stoxx(symbol):
+def history_stoxx(symbol):
     return parse_stoxx(get(f"https://www.stoxx.com/document/Indices/Current/HistoricalData/h_{symbol.lower()}.txt").decode())
 
 
+def fetch_stoxx(symbol):
+    return last(history_stoxx(symbol))
+
+
 def parse_bse(page):
-    # The home page embeds the BUX panel's data as JSON. It carries no timestamp.
-    # shortcut: time = when we read it, so after the close it looks fresher than it is;
-    # cap it at the Budapest close once phase 2 knows market hours.
+    # The home page embeds the BUX panel's data as JSON. It carries no timestamp, so the
+    # time is when we read it; pipeline.run moves it back to the last close when Budapest is shut.
     m = re.search(r'"BuxIndexPanelDataSource":(\{[^}]*\})', page)
     if not m:
         raise ValueError("BUX data not found on the BSE page (layout changed?)")
@@ -218,6 +312,13 @@ SOURCES = {
     "stoxx": fetch_stoxx, "bse": fetch_bse, "pse": fetch_pse,
 }
 
+# Sources with past daily closes. BSE and PSE have none we can read, so BUX and PX build
+# their history from our own daily closes. Yahoo is batched separately (history_yahoo).
+HISTORY = {
+    "fred": history_fred, "boe": history_boe, "bundesbank": history_bundesbank,
+    "akk": history_akk, "mnb_bubor": history_mnb_bubor, "stoxx": history_stoxx,
+}
+
 
 def fetch_one(source, symbol, yahoo):
     """Return (value, time) or raise with a readable reason."""
@@ -246,6 +347,9 @@ def fetch_all(instruments):
             res["missing_reason"] = inst["note"]
             results.append(res)
             continue
+        if inst["source"] == "spread":  # filled in below, once both legs are fetched
+            results.append(res)
+            continue
         tries = [(inst["source"], inst["symbol"])]
         if "fallback_source" in inst:
             tries.append((inst["fallback_source"], inst["fallback_symbol"]))
@@ -262,7 +366,22 @@ def fetch_all(instruments):
         elif errors:
             res["fallback_because"] = errors[0]
         results.append(res)
+    by_id = {r["id"]: r for r in results}
+    for inst in instruments:
+        if inst.get("source") == "spread":
+            spread(by_id[inst["id"]], *(by_id[i] for i in inst["symbol"].split("-")))
     return results
+
+
+def spread(res, a, b):
+    """res = a minus b (e.g. 10-year yield minus 3-year), only if both are from the same day."""
+    if a["value"] is None or b["value"] is None:
+        res["missing_reason"] = f"needs both {a['id']} and {b['id']}"
+    elif a["time"] != b["time"]:
+        res["missing_reason"] = f"{a['id']} is from {a['time']}, {b['id']} from {b['time']}"
+    else:
+        # round: 5.50 - 5.48 is 0.019999999999999574 in binary floating point
+        res.update(value=round(a["value"] - b["value"], 6), time=a["time"], source=f"spread:{a['id']}-{b['id']}")
 
 
 def main():
