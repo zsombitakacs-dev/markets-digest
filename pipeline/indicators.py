@@ -120,15 +120,25 @@ def market_state(market, now):
 
 
 STALE = timedelta(minutes=30)
+JUST_OPENED = timedelta(minutes=45)
+OPEN = ("open", "just opened")  # the states in which a market is trading
 
 
-def holiday_check(state, time, now):
-    """'closed (holiday?)' if the timetable says open but the latest price is over 30 minutes old.
+def checked_state(market, time, now):
+    """market_state, plus what the timetable can't know. `time` is the latest price's time.
 
-    The timetables have no public holidays (e.g. US Thanksgiving), and a holiday shows up as a
-    price that stops updating. Only full timestamps count: a date-only figure is daily anyway.
+    The timetables have no public holidays (e.g. US Thanksgiving); a holiday shows up as a price
+    that stops updating, so an open market whose price is over 30 minutes old is
+    'closed (holiday?)'. Except in the first 45 minutes of a session, 'just opened': a delayed
+    source may still show the last close then. Only full timestamps count: a date-only figure
+    is daily anyway.
     """
-    if state == "open" and time and "T" in time and now - datetime.fromisoformat(time) > STALE:
+    state = market_state(market, now)
+    if state != "open":
+        return state
+    if market_state(market, now - JUST_OPENED) != "open":  # works for overnight and FX sessions too
+        return "just opened"
+    if time and "T" in time and now - datetime.fromisoformat(time) > STALE:
         return "closed (holiday?)"
     return state
 

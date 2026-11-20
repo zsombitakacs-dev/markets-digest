@@ -184,8 +184,11 @@ and the exchange's own time zone (so summer time is handled). Pre-market and aft
 Futures and FX trade almost around the clock from Sunday evening to Friday. Figures published once a day (FRED, the BoE,
 ÁKK, BUBOR) are always `closed`: they are final numbers for their date. The timetables have no public holidays, so a
 market the timetable calls open whose latest price is more than 30 minutes old is marked `closed (holiday?)`: on US
-Thanksgiving (26 Nov 2026) at 10:00 New York, the S&P 500's last price is Wednesday's close, so it shows `closed (holiday?)`.
-The question mark is honest: a price can also stop updating because the source is late.
+Thanksgiving (26 Nov 2026) at 10:30 New York, the S&P 500's last price is Wednesday's close, so it shows `closed (holiday?)`.
+The question mark is honest: a price can also stop updating because the source is late. For the first 45 minutes of a
+session the check is skipped and the state is `just opened`: some prices are delayed 15 minutes, so at 09:35 New York the
+latest one can still be yesterday's close on a perfectly normal day. The options block uses the S&P 500's checked state,
+so on Thanksgiving it keeps Wednesday's options data instead of fetching a holiday chain with no live prices.
 
 ### Sanity checks (`suspect`)
 Before a number is published, it is compared with the **last value that was not suspect**. A price of zero or below, or

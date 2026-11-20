@@ -83,7 +83,7 @@ class FetchAll(unittest.TestCase):
         # 03:00 UTC on the 21st is still the 20th in New York
         now = datetime(2026, 11, 21, 3, 0, tzinfo=timezone.utc)
         with mock.patch.object(options, "fetch_one", fake):
-            out = options.fetch_all(self.config, now)
+            out = options.fetch_all(self.config, now, "closed")
         self.assertEqual(out["SPY"], {"expiry": "2026-12-18", "today": "2026-11-20", "market_state": "closed",
                                       "fetched_at": "2026-11-21T03:00:00+00:00"})
         self.assertIsNone(out["NOPE"]["expiry"])

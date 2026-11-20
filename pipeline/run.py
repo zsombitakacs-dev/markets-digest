@@ -96,8 +96,8 @@ def build(instruments, markets, results, hist, previous, now):
         if not inst.get("available", True):
             out[inst["id"]] = {**res, "market_state": None, "suspect": False}
             continue
-        res["market_state"] = indicators.holiday_check(indicators.market_state(market, now), res["time"], now)
-        if inst["source"] == "bse" and res["value"] is not None and res["market_state"] != "open":
+        res["market_state"] = indicators.checked_state(market, res["time"], now)
+        if inst["source"] == "bse" and res["value"] is not None and res["market_state"] not in indicators.OPEN:
             res["time"] = indicators.last_close(market, now).astimezone(timezone.utc).isoformat()
         prev = previous.get(inst["id"])
         if res["value"] is None:
@@ -160,7 +160,7 @@ def options_due(prev, watchlist, open_now, now):
     blocks = [(prev or {}).get(s) or {} for s in watchlist]
     if not all(b.get("fetched_at") for b in blocks):
         return True  # first run, or a symbol newly added to the watchlist
-    if not open_now and all(b.get("market_state") == "open" and b.get("expiry") for b in blocks):
+    if not open_now and all(b.get("market_state") in indicators.OPEN and b.get("expiry") for b in blocks):
         return False
     return now - min(datetime.fromisoformat(b["fetched_at"]) for b in blocks) >= OPTIONS_EVERY
 
@@ -189,9 +189,10 @@ def main():
     now = datetime.now(timezone.utc)
     latest = build(instruments, markets, fetch.fetch_all(instruments), hist, previous.get("instruments", {}), now)
     opts = config["options"]
-    us_open = indicators.market_state(markets[opts["market"]], now) == "open"
-    if options_due(previous.get("options"), opts["watchlist"], us_open, now):
-        latest["options"] = options.fetch_all(config, now)
+    # The S&P 500's state stands for the US options market: it is holiday-checked, the timetable isn't.
+    us_state = latest["instruments"]["sp500"]["market_state"]
+    if options_due(previous.get("options"), opts["watchlist"], us_state in indicators.OPEN, now):
+        latest["options"] = options.fetch_all(config, now, us_state)
     else:
         latest["options"] = {s: previous["options"][s] for s in opts["watchlist"]}
         print(f"options: kept the block fetched at {min(b['fetched_at'] for b in latest['options'].values())}")

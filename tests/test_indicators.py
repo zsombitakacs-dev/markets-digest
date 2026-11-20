@@ -92,18 +92,38 @@ class MarketHours(unittest.TestCase):
         self.assertEqual(ind.market_state(FX, utc(2026, 11, 27, 22, 0)), "closed")  # Fri 17:00
         self.assertEqual(ind.market_state(FX, utc(2026, 11, 28, 15, 0)), "closed")  # Saturday
 
+    def test_normal_open_is_just_opened(self):
+        # Fri 20 Nov 2026, 09:35 New York: 5 minutes in, a delayed price may still be Thursday's close.
+        now = utc(2026, 11, 20, 14, 35)
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-20T14:35:00+00:00", now), "just opened")
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-19T21:00:00+00:00", now), "just opened")
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-20T15:14:00+00:00", utc(2026, 11, 20, 15, 14)),
+                         "just opened")  # 10:14, 44 minutes in
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-20T15:15:00+00:00", utc(2026, 11, 20, 15, 15)),
+                         "open")  # 10:15, 45 minutes in
+
     def test_holiday_shows_as_stale_price(self):
-        # US Thanksgiving, Thu 26 Nov 2026, 10:00 New York: the timetable says open, but the last
+        # US Thanksgiving, Thu 26 Nov 2026, 10:30 New York: the timetable says open, but the last
         # S&P 500 price is Wednesday's close, 17 hours old.
-        now = utc(2026, 11, 26, 15, 0)
+        now = utc(2026, 11, 26, 15, 30)
         self.assertEqual(ind.market_state(NEW_YORK, now), "open")
-        self.assertEqual(ind.holiday_check("open", "2026-11-25T21:00:00+00:00", now), "closed (holiday?)")
-        self.assertEqual(ind.holiday_check("open", "2026-11-26T14:29:00+00:00", now), "closed (holiday?)")  # 31 min
-        self.assertEqual(ind.holiday_check("open", "2026-11-26T14:30:00+00:00", now), "open")  # exactly 30 min
-        self.assertEqual(ind.holiday_check("open", "2026-11-26T14:45:00+00:00", now), "open")  # a normal day
-        self.assertEqual(ind.holiday_check("closed", "2026-11-25T21:00:00+00:00", now), "closed")
-        self.assertEqual(ind.holiday_check("open", "2026-11-25", now), "open")  # a daily figure: date only
-        self.assertEqual(ind.holiday_check("open", None, now), "open")  # value missing
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-25T21:00:00+00:00", now), "closed (holiday?)")
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-26T14:59:00+00:00", now), "closed (holiday?)")  # 31 min
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-26T15:00:00+00:00", now), "open")  # exactly 30 min
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-26T15:25:00+00:00", now), "open")  # a normal day
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-25", now), "open")  # a daily figure: date only
+        self.assertEqual(ind.checked_state(NEW_YORK, None, now), "open")  # value missing
+        self.assertEqual(ind.checked_state(NEW_YORK, "2026-11-25T21:00:00+00:00", utc(2026, 11, 26, 22, 0)),
+                         "after-hours")  # not open by the timetable: left as it is
+
+    def test_just_opened_in_overnight_sessions(self):
+        # Sunday 17:10 New York: FX's week starts. Tuesday 17:10 it has traded all along.
+        self.assertEqual(ind.checked_state(FX, "2026-11-22T22:10:00+00:00", utc(2026, 11, 22, 22, 10)), "just opened")
+        self.assertEqual(ind.checked_state(FX, "2026-11-24T22:10:00+00:00", utc(2026, 11, 24, 22, 10)), "open")
+        # CME reopens every day at 17:00 Chicago after its one-hour break.
+        self.assertEqual(ind.checked_state(CME, "2026-11-24T23:10:00+00:00", utc(2026, 11, 24, 23, 10)), "just opened")
+        self.assertEqual(ind.checked_state({"always_open": True}, "2026-11-22T03:00:00+00:00",
+                                           utc(2026, 11, 22, 3, 0)), "open")
 
     def test_summer_time_and_daily_figures(self):
         # 1 July: London is UTC+1, so 07:30 UTC is 08:30 local, after the open.

@@ -104,10 +104,10 @@ def fetch_one(symbol, today):
     return out
 
 
-def fetch_all(config, now):
-    """{symbol: block} for the watchlist. A failed symbol gets value None fields and its reason."""
+def fetch_all(config, now, state):
+    """{symbol: block} for the watchlist. A failed symbol gets value None fields and its reason.
+    `state` is the US market's state, recorded with each block."""
     opts = config["options"]
-    state = indicators.market_state(config["market"][opts["market"]], now)  # recorded with each block
     today = now.astimezone(NEW_YORK).date().isoformat()
     out, fetched = {}, now.isoformat(timespec="seconds")
     for s in opts["watchlist"]:
@@ -120,4 +120,6 @@ def fetch_all(config, now):
 
 
 if __name__ == "__main__":
-    print(json.dumps(fetch_all(fetch.load_config(), datetime.now(timezone.utc)), indent=1))
+    config, now = fetch.load_config(), datetime.now(timezone.utc)
+    state = indicators.market_state(config["market"][config["options"]["market"]], now)  # timetable only
+    print(json.dumps(fetch_all(config, now, state), indent=1))
