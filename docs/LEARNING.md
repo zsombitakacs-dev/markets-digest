@@ -36,3 +36,10 @@ data folder, so private content can't be committed to the public repo by acciden
 ### Dependabot
 A GitHub robot that checks weekly whether the libraries and actions we pin have updates (often security fixes)
 and suggests the change. Config: `.github/dependabot.yml`.
+
+### Repo security settings (applied in phase 0)
+- **Outside contributors need approval:** a stranger's proposed change can't run our workflows (which hold secrets) until we approve it.
+- **Read-only workflow token:** each workflow gets a temporary GitHub token; by default it may only read, and a workflow must ask for more explicitly.
+- **Branch rule on `main`:** blocks force-pushes (rewriting history) and deleting the branch, so the history can't be quietly erased.
+- **Secret scanning and push protection:** GitHub refuses a push that contains something that looks like a key or token.
+- **Actions switched off in the data repo:** it only stores content, so there is nothing there that should ever run.
