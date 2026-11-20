@@ -196,3 +196,41 @@ A glitch and a real crash look the same at first, so the next run decides:
   (24,100), so it is fine, and 31,330 never reaches the history.
 - **Real move:** the DAX shows 31,330, then 31,400 on the next run. Two runs in a row agree (within 1% for prices, 5 bp for
   rates), so it is accepted as real (`confirmed_jump` says so) and goes into the history as normal.
+
+## Options (phase 3)
+
+All of these are in `pipeline/options.py`, tested in `tests/test_options.py`. Data: Yahoo Finance, delayed about 15
+minutes, so the `time` field is the newest trade in the chain, not the run time. Examples from 2026-11-20 at 16:43 UTC.
+
+### Calls and puts
+An **option** is a contract giving the right, not the duty, to trade something at a set price (the **strike**) up to a
+set date (the **expiry**). A **call** is the right to buy: it pays off if the price rises above the strike. A **put** is
+the right to sell: it pays off if the price falls below it, so puts work like insurance. SPY (an ETF tracking the S&P 500)
+was at 702.82; a December 800 call only pays if SPY gains more than 13% by 18 December.
+
+### Expiries: monthly and quarterly
+Most options trade around the **monthly expiry**, the third Friday of the month (the Thursday before if that Friday is a
+market holiday: 17 June 2027, because 18 June is Juneteenth). March, June, September and December expiries are
+**quarterly** and the biggest, because futures and index options expire together ("quad witching"), which can make
+markets jumpy that day. We use the nearest monthly expiry *after* today: on expiry day an option has only hours left and
+its numbers are noise. On 2026-11-20 (itself an expiry day) that was 2026-12-18, 28 days away.
+
+### Open interest
+How many contracts are open (bought and not yet closed) at a strike. It is updated once a day, overnight. Strikes with very
+large open interest show where traders hold big positions: SPY's largest put open interest was at 480 (315,443
+contracts), far below the price, which is mostly long-term crash insurance held by funds.
+
+### Put/call ratio
+Puts divided by calls, by **volume** (contracts traded today) or by **open interest** (contracts outstanding). Above 1
+means more puts than calls: more hedging, more fear. SPY: 1.21 by volume, 1.84 by open interest. QQQ (the Nasdaq 100
+ETF): 0.86 and 0.97. SPY's ratio is usually above 1 anyway, because big funds hedge stock portfolios with SPY puts, so
+compare it with its own past, not with 1.
+
+### Implied vs realised volatility
+**Implied volatility (IV)** is the size of swings that option prices expect until expiry, as a yearly %. It is worked
+backwards from the option's price: dearer options mean bigger expected swings. **Realised volatility** (phase 2) is how
+much the price actually moved. We take IV **at the money** (the strike nearest the price, where options are traded most)
+and average the call and the put, because Yahoo's figures for the two differ by a few points. SPY's at-the-money IV was
+25.7% against a realised 20-day volatility of 24.2% for the S&P 500: traders were paying for slightly more turbulence
+than had just happened. When implied is well above realised, insurance is expensive; when below, it is cheap.
+If there is no live bid and ask at the money (often after hours), `atm_iv` is left empty with a reason, not guessed.

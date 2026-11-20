@@ -555,6 +555,13 @@ chart = "https://finance.yahoo.com/quote/BTC-USD/"
 # If open is later than close, the session runs overnight: it opens on Sunday to Thursday
 # evenings and closes the next day (futures and FX).
 
+# ---------- Options ----------
+# Option chains for these US symbols (pipeline/options.py), from Yahoo Finance, delayed ~15 min.
+# Up to 5 US stocks may be added. Checked with a real fetch on 2026-11-20.
+[options]
+watchlist = ["SPY", "QQQ"]
+market = "new_york"
+
 [market.new_york]
 tz = "America/New_York"
 pre = "04:00"

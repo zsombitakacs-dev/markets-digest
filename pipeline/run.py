@@ -18,7 +18,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pipeline import fetch, indicators
+from pipeline import fetch, indicators, options
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get("DATA_DIR", ROOT.parent / "markets-digest-data"))
@@ -169,6 +169,10 @@ def main():
 
     now = datetime.now(timezone.utc)
     latest = build(instruments, markets, fetch.fetch_all(instruments), hist, previous, now)
+    # shortcut: fetches options on every run; in phase 4 refresh them only every 30 minutes, and have
+    # the end-of-day run keep the last block taken while the US market was open (with its time),
+    # so weekend digests show Friday's options data, not "unavailable".
+    latest["options"] = options.fetch_all(config, now)
     write_json(latest_path, latest)
     save_closes(latest, hist, sources, today=args.close)
     if args.close:
