@@ -232,6 +232,7 @@ Write `prompts/daily_digest.md`: the complete instructions the scheduled Claude 
 - **Fonts:** a system font stack (no web fonts). One accent colour from Impeccable's palette, used sparingly.
 - **Dark mode:** check it stays readable when a phone switches to dark mode (avoid pure white backgrounds behind dark text in coloured blocks, avoid text colours that vanish on dark backgrounds).
 - **Plain-text version** sent alongside the HTML, for any email app that blocks HTML.
+- **Sending (confirmed):** the Claude app's Gmail connector has a send tool that takes an HTML body and a plain-text body together, so the prompt should tell the task to fill both. Recipients go in **BCC**, with the user's own address in To, so readers never see each other's addresses.
 - **No charts in the email:** real charts live on the private dashboard; the email links to it.
 - **Test before handing over:** render a sample from today's data, check it at phone width (about 375px) and desktop width, in light and dark mode, and show the user screenshots.
 
