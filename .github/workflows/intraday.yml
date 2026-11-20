@@ -45,8 +45,11 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # This step, setup-python and the fetch may fail without failing the run: see "Fail loudly".
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        id: data
         if: steps.gate.outputs.skip != 'true'
+        continue-on-error: true
         with:
           repository: zsombitakacs-dev/markets-digest-data
           token: ${{ secrets.DATA_REPO_TOKEN }}
@@ -55,15 +58,17 @@ jobs:
           persist-credentials: false  # read only: this workflow never pushes
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        id: python
         if: steps.gate.outputs.skip != 'true'
+        continue-on-error: true
         with:
           python-version: "3.14"
           cache: pip
 
       - name: Fetch and calculate
         id: run
-        if: steps.gate.outputs.skip != 'true'
-        continue-on-error: true  # one failed run is not worth an email; see "Fail loudly"
+        if: steps.gate.outputs.skip != 'true' && steps.data.outcome == 'success' && steps.python.outcome == 'success'
+        continue-on-error: true  # one failed run is not worth an email (a skipped one counts as failed)
         run: |
           pip install --quiet -r requirements.txt
           if [ -f state/latest.json ]; then cp state/latest.json "$DATA_DIR/data/latest.json"; fi
