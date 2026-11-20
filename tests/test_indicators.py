@@ -83,6 +83,28 @@ class MarketHours(unittest.TestCase):
         self.assertEqual(ind.market_state(FX, utc(2026, 11, 20, 21, 59)), "open")  # Fri 16:59 New York
         self.assertEqual(ind.market_state(FX, utc(2026, 11, 20, 22, 1)), "closed")  # Fri 17:01
 
+    def test_fx_open_equals_close(self):
+        # FX opens and closes at 17:00 New York: open from Sunday 17:00 to Friday 17:00, without a break.
+        self.assertEqual(ind.market_state(FX, utc(2026, 11, 22, 21, 59)), "closed")  # Sun 16:59
+        self.assertEqual(ind.market_state(FX, utc(2026, 11, 22, 22, 1)), "open")  # Sun 17:01
+        self.assertEqual(ind.market_state(FX, utc(2026, 11, 24, 22, 0)), "open")  # Tue 17:00, no daily break
+        self.assertEqual(ind.market_state(FX, utc(2026, 11, 27, 21, 59)), "open")  # Fri 16:59
+        self.assertEqual(ind.market_state(FX, utc(2026, 11, 27, 22, 0)), "closed")  # Fri 17:00
+        self.assertEqual(ind.market_state(FX, utc(2026, 11, 28, 15, 0)), "closed")  # Saturday
+
+    def test_holiday_shows_as_stale_price(self):
+        # US Thanksgiving, Thu 26 Nov 2026, 10:00 New York: the timetable says open, but the last
+        # S&P 500 price is Wednesday's close, 17 hours old.
+        now = utc(2026, 11, 26, 15, 0)
+        self.assertEqual(ind.market_state(NEW_YORK, now), "open")
+        self.assertEqual(ind.holiday_check("open", "2026-11-25T21:00:00+00:00", now), "closed (holiday?)")
+        self.assertEqual(ind.holiday_check("open", "2026-11-26T14:29:00+00:00", now), "closed (holiday?)")  # 31 min
+        self.assertEqual(ind.holiday_check("open", "2026-11-26T14:30:00+00:00", now), "open")  # exactly 30 min
+        self.assertEqual(ind.holiday_check("open", "2026-11-26T14:45:00+00:00", now), "open")  # a normal day
+        self.assertEqual(ind.holiday_check("closed", "2026-11-25T21:00:00+00:00", now), "closed")
+        self.assertEqual(ind.holiday_check("open", "2026-11-25", now), "open")  # a daily figure: date only
+        self.assertEqual(ind.holiday_check("open", None, now), "open")  # value missing
+
     def test_summer_time_and_daily_figures(self):
         # 1 July: London is UTC+1, so 07:30 UTC is 08:30 local, after the open.
         self.assertEqual(ind.market_state(LONDON, utc(2026, 7, 1, 7, 30)), "open")

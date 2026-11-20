@@ -96,7 +96,7 @@ def build(instruments, markets, results, hist, previous, now):
         if not inst.get("available", True):
             out[inst["id"]] = {**res, "market_state": None, "suspect": False}
             continue
-        res["market_state"] = indicators.market_state(market, now)
+        res["market_state"] = indicators.holiday_check(indicators.market_state(market, now), res["time"], now)
         if inst["source"] == "bse" and res["value"] is not None and res["market_state"] != "open":
             res["time"] = indicators.last_close(market, now).astimezone(timezone.utc).isoformat()
         prev = previous.get(inst["id"])

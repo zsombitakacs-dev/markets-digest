@@ -92,7 +92,7 @@ def agrees(a, b, kind):
 
 
 def market_state(market, now):
-    """'open', 'closed', 'pre-market' or 'after-hours' at `now` (an aware datetime).
+    """'open', 'closed', 'pre-market' or 'after-hours' at `now` (an aware datetime), by the timetable.
 
     market: a [market.*] table from config/instruments.toml, or None for a figure published
     once a day (a bond fixing, a FRED series), which is always 'closed'.
@@ -117,6 +117,20 @@ def market_state(market, now):
     if closes <= hm < market.get("post", closes):
         return "after-hours"
     return "closed"
+
+
+STALE = timedelta(minutes=30)
+
+
+def holiday_check(state, time, now):
+    """'closed (holiday?)' if the timetable says open but the latest price is over 30 minutes old.
+
+    The timetables have no public holidays (e.g. US Thanksgiving), and a holiday shows up as a
+    price that stops updating. Only full timestamps count: a date-only figure is daily anyway.
+    """
+    if state == "open" and time and "T" in time and now - datetime.fromisoformat(time) > STALE:
+        return "closed (holiday?)"
+    return state
 
 
 def last_close(market, now):

@@ -182,8 +182,10 @@ prices expect for the future: the VIX (30.2) is the S&P 500's implied volatility
 For each instrument: `open`, `closed`, `pre-market` or `after-hours`, from the trading hours in `config/instruments.toml`
 and the exchange's own time zone (so summer time is handled). Pre-market and after-hours exist only in New York.
 Futures and FX trade almost around the clock from Sunday evening to Friday. Figures published once a day (FRED, the BoE,
-ÁKK, BUBOR) are always `closed`: they are final numbers for their date. There is no holiday calendar yet, so on a holiday a
-market shows `open` but its price time shows it did not move.
+ÁKK, BUBOR) are always `closed`: they are final numbers for their date. The timetables have no public holidays, so a
+market the timetable calls open whose latest price is more than 30 minutes old is marked `closed (holiday?)`: on US
+Thanksgiving (26 Nov 2026) at 10:00 New York, the S&P 500's last price is Wednesday's close, so it shows `closed (holiday?)`.
+The question mark is honest: a price can also stop updating because the source is late.
 
 ### Sanity checks (`suspect`)
 Before a number is published, it is compared with the **last value that was not suspect**. A price of zero or below, or
@@ -255,7 +257,7 @@ GitHub schedules are best-effort: at busy times a run can start late or be skipp
 
 ### Secrets and access tokens
 An access token is a password for a program, limited to certain actions. `DATA_REPO_TOKEN` can only read and write the
-contents of `markets-digest-data`, and expires after a year (renew it before November 2027, or the runs will fail). It is
+contents of `markets-digest-data`, and expires on 2027-09-01 (renew it before then, or the runs will fail). It is
 stored as an Actions **secret**: workflows can use it, GitHub hides it in logs, and nobody can read it back, not even the owner.
 
 ### Least privilege (`permissions:`)
