@@ -234,3 +234,64 @@ and average the call and the put, because Yahoo's figures for the two differ by 
 25.7% against a realised 20-day volatility of 24.2% for the S&P 500: traders were paying for slightly more turbulence
 than had just happened. When implied is well above realised, insurance is expensive; when below, it is cheap.
 If there is no live bid and ask at the money (often after hours), `atm_iv` is left empty with a reason, not guessed.
+
+## Automation (phase 4)
+
+The pipeline now runs by itself in GitHub's cloud. Four **workflows** (files in `.github/workflows/`) say what to run and when.
+
+### GitHub Actions and a workflow
+A workflow is a list of steps that GitHub runs on a fresh, temporary Linux computer (a **runner**), started by a
+**trigger**: a schedule, or the "Run workflow" button (`workflow_dispatch`). Ours: `intraday` (every 5 minutes on
+weekdays), `pre-digest` (14:35 London), `end-of-day` (22:04 UTC) and `keep-alive` (monthly). Each run starts from nothing:
+it downloads the code and the data repo, installs Python packages, runs `python -m pipeline.run`, and the computer is
+thrown away. A full run takes about 6 seconds of fetching, plus about a minute of setup.
+
+### Cron schedule
+A cron line is five fields: minute, hour, day of month, month, day of week. `2-59/5 7-20 * * 1-5` means minute 2, 7, 12,
+... 57, of hours 07 to 20, any day of the month, any month, Monday (1) to Friday (5): 07:02 to 20:57 UTC. Times are UTC
+unless a `timezone:` is given; `pre-digest` sets `Europe/London`, so it stays at 14:35 UK time when the clocks change.
+Runs that start exactly on the hour are the most often delayed (everyone picks :00), so ours are a few minutes off it.
+GitHub schedules are best-effort: at busy times a run can start late or be skipped.
+
+### Secrets and access tokens
+An access token is a password for a program, limited to certain actions. `DATA_REPO_TOKEN` can only read and write the
+contents of `markets-digest-data`, and expires after a year (renew it before November 2027, or the runs will fail). It is
+stored as an Actions **secret**: workflows can use it, GitHub hides it in logs, and nobody can read it back, not even the owner.
+
+### Least privilege (`permissions:`)
+Each workflow also gets an automatic token for its own repo. `permissions: contents: read` means it can only read this
+repo, so even a broken step cannot change the code. Only `keep-alive` has `contents: write`, because its job is a commit here.
+
+### Pinning actions to a commit SHA
+Steps like `actions/checkout` are other people's code. A tag such as `v7` can be moved to new code by whoever controls
+it; a commit SHA (`3d3c42e5...`) can't, so our workflows always run exactly the version that was checked. The version
+is kept in a comment, and Dependabot proposes updates.
+
+### Cache, and why intraday runs commit nothing
+About 170 intraday runs a day would make 170 commits a day: a bloated, unreadable history. Instead each run saves its
+`latest.json` (and a failure count) in the **Actions cache**, a small store GitHub keeps for the repo for 7 days. The next
+run restores it, so "crossed its 50-day average since the previous run", the suspect checks and the options block carry
+on from 5 minutes ago. Only `pre-digest` and `end-of-day` commit to the data repo. The cache is not public: only
+workflows running in this repo can read it.
+
+### Concurrency
+`concurrency: group: intraday, cancel-in-progress: true` means that if a run is still going when the next one starts,
+the old one is stopped, so runs never pile up. `pre-digest` and `end-of-day` share the group `data-repo` without
+cancelling, so they wait for each other and never push to the data repo at the same time.
+
+### Exit code: failing visibly
+A program ends with a number: 0 for success, anything else for failure. If fewer than half the instruments could be
+fetched, `pipeline.run` still writes its files, then exits with 1, so the run shows as failed and GitHub emails the owner.
+`pre-digest` and `end-of-day` fail loudly at once. One failed intraday run is not worth an email, so `intraday` counts
+failures in a row and fails loudly only at the 3rd, then every 12th. After any failure it also **backs off** and skips
+every other run (every 10 minutes), in case the cause is Yahoo limiting our requests (HTTP 429, "too many requests").
+
+### Options every 30 minutes
+Option chains change slowly and are heavier to fetch, so a run reuses the last options block while it is under 30 minutes
+old (`fetched_at` in each block says when it was taken). While the US market is shut, a block taken while it was open is
+kept: at 22:04 UTC, and all weekend, `latest.json` shows Friday's last open-market options data, with its time, rather than
+an after-hours chain with no live prices.
+
+### Keep-alive
+GitHub pauses schedules in a public repo after 60 days with no activity. Our daily commits go to the private repo, so on
+the 1st of each month `keep-alive` writes the date into `status/last_run.txt` here and commits it.

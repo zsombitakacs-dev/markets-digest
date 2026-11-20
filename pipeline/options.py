@@ -107,14 +107,14 @@ def fetch_one(symbol, today):
 def fetch_all(config, now):
     """{symbol: block} for the watchlist. A failed symbol gets value None fields and its reason."""
     opts = config["options"]
-    state = indicators.market_state(config["market"][opts["market"]], now)
+    state = indicators.market_state(config["market"][opts["market"]], now)  # recorded with each block
     today = now.astimezone(NEW_YORK).date().isoformat()
-    out = {}
+    out, fetched = {}, now.isoformat(timespec="seconds")
     for s in opts["watchlist"]:
         try:
-            out[s] = {**fetch_one(s, today), "market_state": state}
+            out[s] = {**fetch_one(s, today), "market_state": state, "fetched_at": fetched}
         except Exception as e:  # recorded, not fatal: the prices still get written
-            out[s] = {"expiry": None, "time": None, "source": None, "market_state": state,
+            out[s] = {"expiry": None, "time": None, "source": None, "market_state": state, "fetched_at": fetched,
                       "missing_reason": f"{type(e).__name__}: {str(e)[:120]}"}
     return out
 

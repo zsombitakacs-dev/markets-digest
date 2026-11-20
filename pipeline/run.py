@@ -15,7 +15,8 @@ import argparse
 import csv
 import json
 import os
-from datetime import datetime, timezone
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from pipeline import fetch, indicators, options
@@ -146,6 +147,24 @@ def save_closes(latest, hist, sources, today=True):
             add_close(hist, sources, i, r["time"][:10], r["value"], r["source"])
 
 
+OPTIONS_EVERY = timedelta(minutes=30)  # option chains change slowly and are heavy to fetch
+
+
+def options_due(prev, watchlist, open_now, now):
+    """Fetch new option chains, or keep the last block (`prev`, {symbol: block})?
+
+    Keep it while it is under 30 minutes old. While the US market is shut, also keep a block
+    that was taken while it was open (e.g. Friday's, all weekend): after-hours chains can lack
+    a live bid and ask, which leaves the at-the-money implied volatility empty.
+    """
+    blocks = [(prev or {}).get(s) or {} for s in watchlist]
+    if not all(b.get("fetched_at") for b in blocks):
+        return True  # first run, or a symbol newly added to the watchlist
+    if not open_now and all(b.get("market_state") == "open" and b.get("expiry") for b in blocks):
+        return False
+    return now - min(datetime.fromisoformat(b["fetched_at"]) for b in blocks) >= OPTIONS_EVERY
+
+
 def write_json(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
@@ -165,14 +184,17 @@ def main():
     failed = backfill(instruments, hist, sources)
     for i, why in failed.items():
         print(f"history for {i} not available: {why}")
-    previous = json.loads(latest_path.read_text())["instruments"] if latest_path.exists() else {}
+    previous = json.loads(latest_path.read_text()) if latest_path.exists() else {}
 
     now = datetime.now(timezone.utc)
-    latest = build(instruments, markets, fetch.fetch_all(instruments), hist, previous, now)
-    # shortcut: fetches options on every run; in phase 4 refresh them only every 30 minutes, and have
-    # the end-of-day run keep the last block taken while the US market was open (with its time),
-    # so weekend digests show Friday's options data, not "unavailable".
-    latest["options"] = options.fetch_all(config, now)
+    latest = build(instruments, markets, fetch.fetch_all(instruments), hist, previous.get("instruments", {}), now)
+    opts = config["options"]
+    us_open = indicators.market_state(markets[opts["market"]], now) == "open"
+    if options_due(previous.get("options"), opts["watchlist"], us_open, now):
+        latest["options"] = options.fetch_all(config, now)
+    else:
+        latest["options"] = {s: previous["options"][s] for s in opts["watchlist"]}
+        print(f"options: kept the block fetched at {min(b['fetched_at'] for b in latest['options'].values())}")
     write_json(latest_path, latest)
     save_closes(latest, hist, sources, today=args.close)
     if args.close:
@@ -180,8 +202,12 @@ def main():
     save_history(prices, hist, sources)  # also keeps a fresh backfill, so it runs only once
 
     rows = latest["instruments"].values()
-    print(f"wrote {latest_path} at {latest['run_at']}: {sum(r['value'] is not None for r in rows)} of "
+    got = sum(r["value"] is not None for r in rows)
+    print(f"wrote {latest_path} at {latest['run_at']}: {got} of "
           f"{len(rows)} values, {sum(r['suspect'] for r in rows)} suspect")
+    wanted = sum(i.get("available", True) for i in instruments)
+    if got < wanted / 2:  # e.g. Yahoo blocking us: the files are written, but the run fails visibly
+        sys.exit(f"only {got} of {wanted} available instruments fetched")
 
 
 if __name__ == "__main__":

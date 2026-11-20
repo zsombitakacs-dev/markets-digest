@@ -1,0 +1,75 @@
+# Daily at 14:35 London time: fetch, recalculate and commit latest.json to the data repo, so the
+# 14:45 digest task reads data about 10 minutes old.
+name: pre-digest
+
+on:
+  schedule:
+    - cron: "35 14 * * *"
+      timezone: "Europe/London"  # GitHub follows UK summer time itself (supported since March 2026)
+  workflow_dispatch:
+
+permissions:
+  contents: read  # this repo is only read; the data repo is written with DATA_REPO_TOKEN
+
+concurrency:
+  group: data-repo  # shared with end-of-day, so two runs never push at once
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATA_DIR: markets-digest-data
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: zsombitakacs-dev/markets-digest-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: markets-digest-data
+          sparse-checkout: data
+
+      # The newest latest.json from any run (usually the intraday one a few minutes ago), so
+      # crossings, suspect checks and the options block continue from it. See intraday.yml.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: state
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Fetch and calculate
+        run: |
+          pip install --quiet -r requirements.txt
+          if [ -f state/latest.json ]; then cp state/latest.json "$DATA_DIR/data/latest.json"; fi
+          python -m pipeline.run
+
+      - name: Commit to the data repo
+        if: ${{ !cancelled() }}  # also after a run with most values missing: the digest says what is unavailable
+        working-directory: markets-digest-data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet && exit 0
+          git commit --quiet -m "Pre-digest data $(date -u +%Y-%m-%dT%H:%MZ)"
+          git pull --quiet --rebase  # in case the digest task pushed meanwhile
+          git push --quiet
+
+      - name: Keep the newest latest.json for the next run
+        if: ${{ !cancelled() }}
+        run: mkdir -p state && cp "$DATA_DIR/data/latest.json" state/
+
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        if: ${{ !cancelled() }}
+        with:
+          path: state
+          key: state-${{ github.run_id }}

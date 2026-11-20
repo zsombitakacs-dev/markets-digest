@@ -1,0 +1,99 @@
+# Every 5 minutes on weekdays, 07:00-21:00 UTC: fetch prices, recalculate, (phase 5) deploy the
+# dashboard. Nothing is committed: the newest latest.json is carried from run to run in the
+# Actions cache instead (see "state" below), so the data repo only gets a few commits a day.
+name: intraday
+
+on:
+  schedule:
+    - cron: "2-59/5 7-20 * * 1-5"  # :02, :07, ... :57 UTC. Off the hour: on-the-hour runs start late most often.
+  workflow_dispatch:  # a "Run workflow" button, for testing
+
+permissions:
+  contents: read
+
+concurrency:
+  group: intraday
+  cancel-in-progress: true  # a new run replaces an old one still going, so runs never pile up
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      DATA_DIR: markets-digest-data
+    steps:
+      # state/ holds the last run's latest.json and how many runs in a row have failed.
+      # Keys can't be overwritten, so each run saves a new one and the newest "state-" is restored.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: state
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      - name: Back off after a failure
+        id: gate
+        run: |
+          fails=$(cat state/fails 2>/dev/null || echo 0)
+          # After a failed run (e.g. Yahoo rate-limiting us), skip every other run: every 10 minutes.
+          if [ "$fails" -gt 0 ] && [ $(( ${{ github.run_number }} % 2 )) = 1 ]; then
+            echo "::warning::$fails failed run(s) in a row: backing off to every 10 minutes"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          repository: zsombitakacs-dev/markets-digest-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: markets-digest-data
+          sparse-checkout: data  # the price history and latest.json; not digests or exports
+          persist-credentials: false  # read only: this workflow never pushes
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Fetch and calculate
+        id: run
+        if: steps.gate.outputs.skip != 'true'
+        continue-on-error: true  # one failed run is not worth an email; see "Fail loudly"
+        run: |
+          pip install --quiet -r requirements.txt
+          if [ -f state/latest.json ]; then cp state/latest.json "$DATA_DIR/data/latest.json"; fi
+          python -m pipeline.run
+
+      # Phase 5: deploy the dashboard to Cloudflare Pages here (site/ plus latest.json and a trimmed
+      # price history), with Cloudflare's Wrangler action pinned to a commit SHA, using the
+      # CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets.
+
+      - name: Count failures in a row
+        id: count
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          mkdir -p state
+          if [ "${{ steps.run.outcome }}" = success ]; then fails=0; else fails=$(( $(cat state/fails 2>/dev/null || echo 0) + 1 )); fi
+          echo "$fails" > state/fails
+          echo "fails=$fails" >> "$GITHUB_OUTPUT"
+          # Email at the 3rd failure in a row, then every 12th (about every 2 hours at the backed-off pace).
+          if [ "$fails" = 3 ] || { [ "$fails" -gt 0 ] && [ $(( fails % 12 )) = 0 ]; }; then echo "loud=true" >> "$GITHUB_OUTPUT"; fi
+          if [ -f "$DATA_DIR/data/latest.json" ]; then cp "$DATA_DIR/data/latest.json" state/; fi
+
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          path: state
+          key: state-${{ github.run_id }}
+
+      # A failed run makes GitHub email the repo owner, so only some failures fail the run.
+      - name: Fail loudly
+        if: steps.count.outputs.loud == 'true'
+        run: |
+          echo "::error::${{ steps.count.outputs.fails }} intraday runs in a row have failed. Open the latest failed run's 'Fetch and calculate' step to see why."
+          exit 1

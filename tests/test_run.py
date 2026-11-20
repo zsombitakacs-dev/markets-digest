@@ -132,3 +132,30 @@ class SuspectOverRuns(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OptionsRefresh(unittest.TestCase):
+    NOW = datetime(2026, 11, 20, 16, 0, tzinfo=timezone.utc)  # a Friday, 11:00 in New York
+
+    def block(self, fetched, state="open", expiry="2026-12-18"):
+        return {"fetched_at": fetched, "market_state": state, "expiry": expiry}
+
+    def due(self, prev, open_now=True, watchlist=("SPY",)):
+        return run.options_due(prev, watchlist, open_now, self.NOW)
+
+    def test_first_run_and_new_symbol_fetch(self):
+        self.assertTrue(self.due(None))
+        self.assertTrue(self.due({"SPY": self.block("2026-11-20T15:55:00+00:00")}, watchlist=("SPY", "QQQ")))
+
+    def test_every_30_minutes_while_open(self):
+        self.assertFalse(self.due({"SPY": self.block("2026-11-20T15:31:00+00:00")}))  # 29 minutes old
+        self.assertTrue(self.due({"SPY": self.block("2026-11-20T15:30:00+00:00")}))   # 30 minutes old
+
+    def test_closed_market_keeps_the_last_open_block(self):
+        friday = {"SPY": self.block("2026-11-20T20:55:00+00:00")}
+        self.assertFalse(run.options_due(friday, ["SPY"], False, datetime(2026, 11, 22, 22, 0, tzinfo=timezone.utc)))
+
+    def test_closed_market_refetches_a_block_not_taken_while_open(self):
+        self.assertTrue(self.due({"SPY": self.block("2026-11-20T13:00:00+00:00", "pre-market")}, open_now=False))
+        # a fetch that failed while open is not worth keeping all weekend
+        self.assertTrue(self.due({"SPY": self.block("2026-11-20T15:00:00+00:00", expiry=None)}, open_now=False))
