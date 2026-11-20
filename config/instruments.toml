@@ -1,0 +1,496 @@
+# Every instrument the pipeline tracks. One [[instrument]] block each.
+#
+#   id               short name used in data files
+#   name, group      what readers see
+#   source, symbol   where the number comes from (see SOURCES in pipeline/fetch.py)
+#   fallback_source,
+#   fallback_symbol  used only if the primary source fails
+#   kind             "price" (daily change in %) or "rate" (yields and spreads: change in basis points)
+#   chart            a page where a reader can see a chart or the official figure
+#   available        false = no free source; kept here, with a note, so the gap is visible
+#   note             anything a reader of the data should know
+#
+# Every symbol was checked with a real fetch on 2026-11-20.
+
+# ---------- US equities ----------
+[[instrument]]
+id = "sp500"
+name = "S&P 500"
+group = "US equities"
+source = "yahoo"
+symbol = "^GSPC"
+chart = "https://finance.yahoo.com/quote/%5EGSPC/"
+
+[[instrument]]
+id = "nasdaq"
+name = "Nasdaq Composite"
+group = "US equities"
+source = "yahoo"
+symbol = "^IXIC"
+chart = "https://finance.yahoo.com/quote/%5EIXIC/"
+
+[[instrument]]
+id = "dow"
+name = "Dow Jones"
+group = "US equities"
+source = "yahoo"
+symbol = "^DJI"
+chart = "https://finance.yahoo.com/quote/%5EDJI/"
+
+# ---------- US futures ----------
+[[instrument]]
+id = "es_fut"
+name = "S&P 500 futures"
+group = "US futures"
+source = "yahoo"
+symbol = "ES=F"
+chart = "https://finance.yahoo.com/quote/ES%3DF/"
+
+[[instrument]]
+id = "nq_fut"
+name = "Nasdaq 100 futures"
+group = "US futures"
+source = "yahoo"
+symbol = "NQ=F"
+chart = "https://finance.yahoo.com/quote/NQ%3DF/"
+
+# ---------- UK and Europe equities ----------
+[[instrument]]
+id = "ftse100"
+name = "FTSE 100"
+group = "UK and Europe equities"
+source = "yahoo"
+symbol = "^FTSE"
+chart = "https://finance.yahoo.com/quote/%5EFTSE/"
+
+[[instrument]]
+id = "dax"
+name = "DAX"
+group = "UK and Europe equities"
+source = "yahoo"
+symbol = "^GDAXI"
+chart = "https://finance.yahoo.com/quote/%5EGDAXI/"
+
+[[instrument]]
+id = "stoxx600"
+name = "STOXX 600"
+group = "UK and Europe equities"
+source = "yahoo"
+symbol = "^STOXX"
+chart = "https://finance.yahoo.com/quote/%5ESTOXX/"
+
+# ---------- Hungary equities ----------
+[[instrument]]
+id = "bux"
+name = "BUX"
+group = "Hungary equities"
+source = "bse"
+symbol = "BUX"
+chart = "https://www.bse.hu/Products-and-Services/Indices/BUX"
+note = "Not on Yahoo. Read from the Budapest Stock Exchange home page, which gives no timestamp: the time is when we read it."
+
+[[instrument]]
+id = "otp"
+name = "OTP Bank"
+group = "Hungary equities"
+source = "yahoo"
+symbol = "OTP.BD"
+chart = "https://finance.yahoo.com/quote/OTP.BD/"
+
+[[instrument]]
+id = "mol"
+name = "MOL"
+group = "Hungary equities"
+source = "yahoo"
+symbol = "MOL.BD"
+chart = "https://finance.yahoo.com/quote/MOL.BD/"
+
+[[instrument]]
+id = "richter"
+name = "Richter Gedeon"
+group = "Hungary equities"
+source = "yahoo"
+symbol = "RICHT.BD"
+chart = "https://finance.yahoo.com/quote/RICHT.BD/"
+note = "Yahoo also lists RICHTER.BD, but it lags a day; RICHT.BD is current."
+
+[[instrument]]
+id = "mtelekom"
+name = "Magyar Telekom"
+group = "Hungary equities"
+source = "yahoo"
+symbol = "MTELEKOM.BD"
+chart = "https://finance.yahoo.com/quote/MTELEKOM.BD/"
+
+# ---------- CEE peers ----------
+[[instrument]]
+id = "wig20"
+name = "WIG20"
+group = "CEE peers"
+source = "yahoo"
+symbol = "WIG20.WA"
+chart = "https://finance.yahoo.com/quote/WIG20.WA/"
+
+[[instrument]]
+id = "px"
+name = "PX"
+group = "CEE peers"
+source = "pse"
+symbol = "XC0009698371"
+chart = "https://www.pse.cz/en/indices/index-values/detail/XC0009698371"
+note = "Not on Yahoo. Read from the Prague Stock Exchange index page."
+
+# ---------- Asia equities ----------
+[[instrument]]
+id = "nikkei"
+name = "Nikkei 225"
+group = "Asia equities"
+source = "yahoo"
+symbol = "^N225"
+chart = "https://finance.yahoo.com/quote/%5EN225/"
+
+[[instrument]]
+id = "hangseng"
+name = "Hang Seng"
+group = "Asia equities"
+source = "yahoo"
+symbol = "^HSI"
+chart = "https://finance.yahoo.com/quote/%5EHSI/"
+
+[[instrument]]
+id = "shanghai"
+name = "Shanghai Composite"
+group = "Asia equities"
+source = "yahoo"
+symbol = "000001.SS"
+chart = "https://finance.yahoo.com/quote/000001.SS/"
+
+# ---------- FX ----------
+[[instrument]]
+id = "dxy"
+name = "Dollar index (DXY)"
+group = "FX"
+source = "yahoo"
+symbol = "DX-Y.NYB"
+chart = "https://finance.yahoo.com/quote/DX-Y.NYB/"
+
+[[instrument]]
+id = "eurhuf"
+name = "EUR/HUF"
+group = "FX"
+source = "yahoo"
+symbol = "EURHUF=X"
+fallback_source = "mnb"
+fallback_symbol = "EUR"
+chart = "https://finance.yahoo.com/quote/EURHUF%3DX/"
+
+[[instrument]]
+id = "usdhuf"
+name = "USD/HUF"
+group = "FX"
+source = "yahoo"
+symbol = "USDHUF=X"
+fallback_source = "mnb"
+fallback_symbol = "USD"
+chart = "https://finance.yahoo.com/quote/USDHUF%3DX/"
+
+[[instrument]]
+id = "gbphuf"
+name = "GBP/HUF"
+group = "FX"
+source = "yahoo"
+symbol = "GBPHUF=X"
+fallback_source = "mnb"
+fallback_symbol = "GBP"
+chart = "https://finance.yahoo.com/quote/GBPHUF%3DX/"
+
+[[instrument]]
+id = "eurpln"
+name = "EUR/PLN"
+group = "FX"
+source = "yahoo"
+symbol = "EURPLN=X"
+fallback_source = "ecb"
+fallback_symbol = "PLN"
+chart = "https://finance.yahoo.com/quote/EURPLN%3DX/"
+
+[[instrument]]
+id = "eurczk"
+name = "EUR/CZK"
+group = "FX"
+source = "yahoo"
+symbol = "EURCZK=X"
+fallback_source = "ecb"
+fallback_symbol = "CZK"
+chart = "https://finance.yahoo.com/quote/EURCZK%3DX/"
+
+[[instrument]]
+id = "eurusd"
+name = "EUR/USD"
+group = "FX"
+source = "yahoo"
+symbol = "EURUSD=X"
+fallback_source = "ecb"
+fallback_symbol = "USD"
+chart = "https://finance.yahoo.com/quote/EURUSD%3DX/"
+
+[[instrument]]
+id = "gbpusd"
+name = "GBP/USD"
+group = "FX"
+source = "yahoo"
+symbol = "GBPUSD=X"
+chart = "https://finance.yahoo.com/quote/GBPUSD%3DX/"
+
+[[instrument]]
+id = "usdjpy"
+name = "USD/JPY"
+group = "FX"
+source = "yahoo"
+symbol = "JPY=X"
+chart = "https://finance.yahoo.com/quote/JPY%3DX/"
+
+[[instrument]]
+id = "usdcny"
+name = "USD/CNY"
+group = "FX"
+source = "yahoo"
+symbol = "CNY=X"
+chart = "https://finance.yahoo.com/quote/CNY%3DX/"
+
+# ---------- Government bonds (yields in %) ----------
+[[instrument]]
+id = "us2y"
+name = "US Treasury 2-year"
+group = "Government bonds"
+kind = "rate"
+source = "fred"
+symbol = "DGS2"
+chart = "https://fred.stlouisfed.org/series/DGS2"
+note = "FRED publishes the previous day's close, so this is about one business day old."
+
+[[instrument]]
+id = "us10y"
+name = "US Treasury 10-year"
+group = "Government bonds"
+kind = "rate"
+source = "fred"
+symbol = "DGS10"
+fallback_source = "yahoo"
+fallback_symbol = "^TNX"
+chart = "https://fred.stlouisfed.org/series/DGS10"
+note = "FRED publishes the previous day's close, so this is about one business day old."
+
+[[instrument]]
+id = "uk2y"
+name = "UK gilt 2-year"
+group = "Government bonds"
+kind = "rate"
+source = "boe"
+symbol = "2"
+chart = "https://www.bankofengland.co.uk/statistics/yield-curves"
+note = "Bank of England nominal spot (zero-coupon) curve, published the next business day."
+
+[[instrument]]
+id = "uk10y"
+name = "UK gilt 10-year"
+group = "Government bonds"
+kind = "rate"
+source = "boe"
+symbol = "10"
+chart = "https://www.bankofengland.co.uk/statistics/yield-curves"
+note = "Bank of England nominal spot (zero-coupon) curve, published the next business day."
+
+[[instrument]]
+id = "de2y"
+name = "German Bund 2-year"
+group = "Government bonds"
+kind = "rate"
+source = "bundesbank"
+symbol = "BBSSY/D.REN.EUR.A610.000000WT0202.A"
+chart = "https://www.bundesbank.de/en/statistics/money-and-capital-markets/interest-rates-and-yields/daily-yields-of-current-federal-securities-772220"
+note = "Yield of the newest 2-year Federal Treasury note (Schatz)."
+
+[[instrument]]
+id = "de10y"
+name = "German Bund 10-year"
+group = "Government bonds"
+kind = "rate"
+source = "bundesbank"
+symbol = "BBSSY/D.REN.EUR.A630.000000WT1010.A"
+chart = "https://www.bundesbank.de/en/statistics/money-and-capital-markets/interest-rates-and-yields/daily-yields-of-current-federal-securities-772220"
+note = "Yield of the newest 10-year Bund."
+
+[[instrument]]
+id = "hu2y"
+name = "Hungary government bond 2-year"
+group = "Government bonds"
+kind = "rate"
+available = false
+chart = "https://www.akk.hu/en/statisztika/hozamok-indexek-forgalmi-adatok/referenciahozamok"
+note = "ÁKK publishes no 2-year benchmark (its maturities are 3M, 6M, 12M, 3Y, 5Y, 10Y, 15Y, 20Y). The 3-year below is the closest."
+
+[[instrument]]
+id = "hu3y"
+name = "Hungary government bond 3-year"
+group = "Government bonds"
+kind = "rate"
+source = "akk"
+symbol = "3Y"
+chart = "https://www.akk.hu/en/statisztika/hozamok-indexek-forgalmi-adatok/referenciahozamok"
+note = "ÁKK official benchmark yield. Stands in for the 2-year, which ÁKK does not publish."
+
+[[instrument]]
+id = "hu10y"
+name = "Hungary government bond 10-year"
+group = "Government bonds"
+kind = "rate"
+source = "akk"
+symbol = "10Y"
+chart = "https://www.akk.hu/en/statisztika/hozamok-indexek-forgalmi-adatok/referenciahozamok"
+note = "ÁKK official benchmark yield."
+
+[[instrument]]
+id = "us2s10s"
+name = "US 2s10s spread (10y minus 2y)"
+group = "Government bonds"
+kind = "rate"
+source = "fred"
+symbol = "T10Y2Y"
+chart = "https://fred.stlouisfed.org/series/T10Y2Y"
+note = "In percentage points. FRED's own series, about one business day old."
+
+# ---------- Money markets ----------
+[[instrument]]
+id = "bubor3m"
+name = "BUBOR 3-month"
+group = "Money markets"
+kind = "rate"
+source = "mnb_bubor"
+symbol = "3months"
+chart = "https://www.mnb.hu/en/monetary-policy/market-information"
+note = "Official daily fixing, published by the MNB (the BUBOR administrator) around 11:00 Budapest time."
+
+# ---------- Credit and risk ----------
+[[instrument]]
+id = "us_ig_oas"
+name = "US investment-grade credit spread"
+group = "Credit and risk"
+kind = "rate"
+source = "fred"
+symbol = "BAMLC0A0CM"
+chart = "https://fred.stlouisfed.org/series/BAMLC0A0CM"
+note = "ICE BofA US Corporate index option-adjusted spread, in percentage points, about one business day old."
+
+[[instrument]]
+id = "us_hy_oas"
+name = "US high-yield credit spread"
+group = "Credit and risk"
+kind = "rate"
+source = "fred"
+symbol = "BAMLH0A0HYM2"
+chart = "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
+note = "ICE BofA US High Yield index option-adjusted spread, in percentage points, about one business day old."
+
+[[instrument]]
+id = "hu_cds5y"
+name = "Hungary 5-year CDS"
+group = "Credit and risk"
+kind = "rate"
+available = false
+chart = ""
+note = "No free source found (checked Yahoo, FRED, ECB, MNB, ÁKK). CDS prices are sold by data vendors."
+
+# ---------- Energy and metals ----------
+[[instrument]]
+id = "brent"
+name = "Brent crude"
+group = "Energy and metals"
+source = "yahoo"
+symbol = "BZ=F"
+chart = "https://finance.yahoo.com/quote/BZ%3DF/"
+
+[[instrument]]
+id = "wti"
+name = "WTI crude"
+group = "Energy and metals"
+source = "yahoo"
+symbol = "CL=F"
+chart = "https://finance.yahoo.com/quote/CL%3DF/"
+
+[[instrument]]
+id = "ttf"
+name = "European natural gas (TTF)"
+group = "Energy and metals"
+source = "yahoo"
+symbol = "TTF=F"
+chart = "https://finance.yahoo.com/quote/TTF%3DF/"
+note = "Front-month Dutch TTF futures, EUR per MWh."
+
+[[instrument]]
+id = "gold"
+name = "Gold"
+group = "Energy and metals"
+source = "yahoo"
+symbol = "GC=F"
+chart = "https://finance.yahoo.com/quote/GC%3DF/"
+
+[[instrument]]
+id = "silver"
+name = "Silver"
+group = "Energy and metals"
+source = "yahoo"
+symbol = "SI=F"
+chart = "https://finance.yahoo.com/quote/SI%3DF/"
+
+[[instrument]]
+id = "copper"
+name = "Copper"
+group = "Energy and metals"
+source = "yahoo"
+symbol = "HG=F"
+chart = "https://finance.yahoo.com/quote/HG%3DF/"
+
+# ---------- Agriculture ----------
+[[instrument]]
+id = "wheat"
+name = "Wheat"
+group = "Agriculture"
+source = "yahoo"
+symbol = "ZW=F"
+chart = "https://finance.yahoo.com/quote/ZW%3DF/"
+
+[[instrument]]
+id = "corn"
+name = "Corn"
+group = "Agriculture"
+source = "yahoo"
+symbol = "ZC=F"
+chart = "https://finance.yahoo.com/quote/ZC%3DF/"
+
+# ---------- Volatility ----------
+[[instrument]]
+id = "vix"
+name = "VIX"
+group = "Volatility"
+source = "yahoo"
+symbol = "^VIX"
+chart = "https://finance.yahoo.com/quote/%5EVIX/"
+
+[[instrument]]
+id = "vstoxx"
+name = "VSTOXX"
+group = "Volatility"
+source = "stoxx"
+symbol = "V2TX"
+chart = "https://www.stoxx.com/document/Indices/Current/HistoricalData/h_v2tx.txt"
+note = "Not on Yahoo. STOXX's official end-of-day file, so it is the previous day's close."
+
+# ---------- Optional ----------
+[[instrument]]
+id = "bitcoin"
+name = "Bitcoin"
+group = "Optional"
+source = "yahoo"
+symbol = "BTC-USD"
+chart = "https://finance.yahoo.com/quote/BTC-USD/"

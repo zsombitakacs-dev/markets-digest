@@ -1,1 +1,6 @@
-# Exact versions are pinned here as each library is added (phase 1 onwards).
+# Exact versions, so every run (laptop and GitHub Actions) uses the same code.
+yfinance==1.8.0
+pandas==3.1.1
+requests==2.34.2
+openpyxl==3.1.5
+xlrd==2.0.2
