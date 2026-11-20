@@ -274,12 +274,12 @@ id = "us10y"
 name = "US Treasury 10-year"
 group = "Government bonds"
 kind = "rate"
-source = "fred"
-symbol = "DGS10"
-fallback_source = "yahoo"
-fallback_symbol = "^TNX"
-chart = "https://fred.stlouisfed.org/series/DGS10"
-note = "FRED publishes the previous day's close, so this is about one business day old."
+source = "yahoo"
+symbol = "^TNX"
+fallback_source = "fred"
+fallback_symbol = "DGS10"
+chart = "https://finance.yahoo.com/quote/%5ETNX/"
+note = "Live CBOE 10-year yield index from Yahoo. Backup: FRED DGS10, the previous day's close."
 
 [[instrument]]
 id = "uk2y"
@@ -358,7 +358,7 @@ kind = "rate"
 source = "fred"
 symbol = "T10Y2Y"
 chart = "https://fred.stlouisfed.org/series/T10Y2Y"
-note = "In percentage points. FRED's own series, about one business day old."
+note = "In percentage points. FRED only (never the live Yahoo 10-year), so both yields are from the same day; the date shown is that day. Checked 2026-11-20: equals DGS10 minus DGS2 on every day."
 
 # ---------- Money markets ----------
 [[instrument]]
