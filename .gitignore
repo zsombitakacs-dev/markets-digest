@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets: never commit
+.env
+
+# Private content: the data repo is cloned next to this one (../markets-digest-data),
+# and checked out into this folder name inside GitHub Actions. Never commit it here.
+markets-digest-data/
+
+# macOS
+.DS_Store

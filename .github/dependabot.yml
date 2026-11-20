@@ -1,0 +1,12 @@
+# Dependabot opens a pull request when a pinned action or Python library has an update.
+# Pull requests never trigger our workflows (none run on pull_request), so this is safe.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
