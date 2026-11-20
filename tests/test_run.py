@@ -66,6 +66,27 @@ class Build(unittest.TestCase):
         self.assertEqual(r["prev_close_date"], "2026-11-19")
         self.assertFalse(r["suspect"])
 
+    def test_budapest_holiday_follows_otp(self):
+        # Fri 23 Oct 2026, a Hungarian national holiday, 11:00 Budapest (09:00 UTC, summer time).
+        # BSE's page gives no time, but OTP's last price is Thursday's close, so both are shut.
+        now = datetime(2026, 10, 23, 9, 0, tzinfo=timezone.utc)
+        bux = {**self.inst, "state_from": "otp"}
+        otp = {"id": "otp", "name": "OTP Bank", "group": "Hungary equities", "market": "budapest",
+               "source": "yahoo", "symbol": "OTP.BD", "chart": ""}
+        results = [{"id": "bux", "name": "BUX", "group": "Hungary equities", "value": 143100.0,
+                    "time": "2026-10-23T09:00:00+00:00", "source": "bse:BUX"},
+                   {"id": "otp", "name": "OTP Bank", "group": "Hungary equities", "value": 40600.0,
+                    "time": "2026-10-22T15:00:00+00:00", "source": "yahoo:OTP.BD"}]  # Thu 17:00 Budapest
+        hist = {"bux": [("2026-10-21", 143000.0)], "otp": [("2026-10-21", 40500.0)]}
+        out = run.build([bux, otp], {"budapest": BUDAPEST}, results, hist, {}, now)["instruments"]
+        self.assertEqual(out["otp"]["market_state"], "closed (holiday?)")
+        self.assertEqual(out["bux"]["market_state"], "closed (holiday?)")
+        self.assertEqual(out["bux"]["time"], "2026-10-22T15:00:00+00:00")  # moved back to Thursday's close
+        # A normal day: OTP traded 5 minutes ago, so BUX is open with the time we read it.
+        results[1]["time"] = "2026-10-23T08:55:00+00:00"
+        out = run.build([bux, otp], {"budapest": BUDAPEST}, results, hist, {}, now)["instruments"]
+        self.assertEqual((out["bux"]["market_state"], out["bux"]["time"]), ("open", "2026-10-23T09:00:00+00:00"))
+
     def test_a_jump_since_the_last_run_is_suspect(self):
         r = self.build(170000.0, datetime(2026, 11, 20, 14, 45, tzinfo=timezone.utc),
                        previous={"bux": {"value": 137000.0, "time": "2026-11-20T14:40:00+00:00", "suspect": False}})

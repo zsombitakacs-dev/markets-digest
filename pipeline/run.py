@@ -86,7 +86,7 @@ def backfill(instruments, hist, sources):
 
 def build(instruments, markets, results, hist, previous, now):
     """The latest.json content: run time, then one object per instrument, keyed by id."""
-    out = {}
+    out, by_id = {}, {i["id"]: (i, r) for i, r in zip(instruments, results)}
     for inst, res in zip(instruments, results):
         market = markets.get(inst.get("market"))
         kind = inst.get("kind", "price")
@@ -96,7 +96,9 @@ def build(instruments, markets, results, hist, previous, now):
         if not inst.get("available", True):
             out[inst["id"]] = {**res, "market_state": None, "suspect": False}
             continue
-        res["market_state"] = indicators.checked_state(market, res["time"], now)
+        # No timestamp of its own (BUX): copy a same-exchange stock's holiday-checked state.
+        src, src_res = by_id[inst["state_from"]] if "state_from" in inst else (inst, res)
+        res["market_state"] = indicators.checked_state(markets.get(src.get("market")), src_res["time"], now)
         if inst["source"] == "bse" and res["value"] is not None and res["market_state"] not in indicators.OPEN:
             res["time"] = indicators.last_close(market, now).astimezone(timezone.utc).isoformat()
         prev = previous.get(inst["id"])

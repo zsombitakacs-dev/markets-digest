@@ -9,6 +9,8 @@
 #   market           trading hours, from the [market.*] tables at the end; no market = a figure
 #                    published once a day, so its state is always "closed"
 #   history_symbol   only where past daily closes need a different symbol than the live price
+#   state_from       an instrument on the same exchange whose market state this one copies, when
+#                    this one's price has no timestamp to holiday-check (BUX follows OTP)
 #   chart            a page where a reader can see a chart or the official figure
 #   available        false = no free source; kept here, with a note, so the gap is visible
 #   note             anything a reader of the data should know
@@ -98,8 +100,9 @@ group = "Hungary equities"
 market = "budapest"
 source = "bse"
 symbol = "BUX"
+state_from = "otp"
 chart = "https://www.bse.hu/Products-and-Services/Indices/BUX"
-note = "Not on Yahoo. Read from the Budapest Stock Exchange home page, which gives no timestamp: the time is when we read it, or the last close when the exchange is shut. No free history, so the averages fill in as our own daily closes build up."
+note = "Not on Yahoo. Read from the Budapest Stock Exchange home page, which gives no timestamp: the time is when we read it, or the last close when the exchange is shut. Its market state is OTP's, so a Budapest holiday is caught. No free history, so the averages fill in as our own daily closes build up."
 
 [[instrument]]
 id = "otp"

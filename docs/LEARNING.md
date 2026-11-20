@@ -188,7 +188,10 @@ Thanksgiving (26 Nov 2026) at 10:30 New York, the S&P 500's last price is Wednes
 The question mark is honest: a price can also stop updating because the source is late. For the first 45 minutes of a
 session the check is skipped and the state is `just opened`: some prices are delayed 15 minutes, so at 09:35 New York the
 latest one can still be yesterday's close on a perfectly normal day. The options block uses the S&P 500's checked state,
-so on Thanksgiving it keeps Wednesday's options data instead of fetching a holiday chain with no live prices.
+so on Thanksgiving it keeps Wednesday's options data instead of fetching a holiday chain with no live prices. BUX
+has no timestamp of its own (the BSE page doesn't give one), so it takes OTP's checked state: same exchange, same
+holidays. On 23 October, a Hungarian national holiday, OTP's last price is the day before's close, so both show
+`closed (holiday?)`.
 
 ### Sanity checks (`suspect`)
 Before a number is published, it is compared with the **last value that was not suspect**. A price of zero or below, or
