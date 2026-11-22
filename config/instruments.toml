@@ -14,6 +14,10 @@
 #   chart            a page where a reader can see a chart or the official figure
 #   available        false = no free source; kept here, with a note, so the gap is visible
 #   note             anything a reader of the data should know
+#   tradingview      symbol for the dashboard's live TradingView widget, only where the free widget
+#                    showed data in a real browser (checked 2026-11-22); none for yields or the VIX
+#   tradingview_range  the widget's chart span when the default (1M, one month) shows no data: "12M"
+#   tradingview_label  shown under the widget when it is not the official live value (a CFD, end-of-day data)
 #
 # Every symbol was checked with a real fetch on 2026-11-20.
 
@@ -26,6 +30,8 @@ market = "new_york"
 source = "yahoo"
 symbol = "^GSPC"
 chart = "https://finance.yahoo.com/quote/%5EGSPC/"
+tradingview = "FOREXCOM:SPXUSD"
+tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "nasdaq"
@@ -44,6 +50,8 @@ market = "new_york"
 source = "yahoo"
 symbol = "^DJI"
 chart = "https://finance.yahoo.com/quote/%5EDJI/"
+tradingview = "FOREXCOM:DJI"
+tradingview_label = "CFD: tracks the index, not the official value."
 
 # ---------- US futures ----------
 [[instrument]]
@@ -63,6 +71,8 @@ market = "cme"
 source = "yahoo"
 symbol = "NQ=F"
 chart = "https://finance.yahoo.com/quote/NQ%3DF/"
+tradingview = "FOREXCOM:NSXUSD"
+tradingview_label = "CFD on the Nasdaq 100 index, not the official futures price."
 
 # ---------- UK and Europe equities ----------
 [[instrument]]
@@ -73,6 +83,8 @@ market = "london"
 source = "yahoo"
 symbol = "^FTSE"
 chart = "https://finance.yahoo.com/quote/%5EFTSE/"
+tradingview = "FOREXCOM:UKXGBP"
+tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "dax"
@@ -82,6 +94,8 @@ market = "frankfurt"
 source = "yahoo"
 symbol = "^GDAXI"
 chart = "https://finance.yahoo.com/quote/%5EGDAXI/"
+tradingview = "FOREXCOM:GRXEUR"
+tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "stoxx600"
@@ -102,6 +116,7 @@ source = "bse"
 symbol = "BUX"
 state_from = "otp"
 chart = "https://www.bse.hu/Products-and-Services/Indices/BUX"
+tradingview = "BET:BUX"
 note = "Not on Yahoo. Read from the Budapest Stock Exchange home page, which gives no timestamp: the time is when we read it, or the last close when the exchange is shut. Its market state is OTP's, so a Budapest holiday is caught. No free history, so the averages fill in as our own daily closes build up."
 
 [[instrument]]
@@ -112,6 +127,7 @@ market = "budapest"
 source = "yahoo"
 symbol = "OTP.BD"
 chart = "https://finance.yahoo.com/quote/OTP.BD/"
+tradingview = "BET:OTP"
 
 [[instrument]]
 id = "mol"
@@ -121,6 +137,7 @@ market = "budapest"
 source = "yahoo"
 symbol = "MOL.BD"
 chart = "https://finance.yahoo.com/quote/MOL.BD/"
+tradingview = "BET:MOL"
 
 [[instrument]]
 id = "richter"
@@ -130,6 +147,7 @@ market = "budapest"
 source = "yahoo"
 symbol = "RICHT.BD"
 chart = "https://finance.yahoo.com/quote/RICHT.BD/"
+tradingview = "BET:RICHTER"
 history_symbol = "RICHTER.BD"
 note = "Live price from RICHT.BD. Yahoo has no past closes for it, so history comes from RICHTER.BD (same share, its latest day lags)."
 
@@ -141,6 +159,7 @@ market = "budapest"
 source = "yahoo"
 symbol = "MTELEKOM.BD"
 chart = "https://finance.yahoo.com/quote/MTELEKOM.BD/"
+tradingview = "BET:MTELEKOM"
 
 # ---------- CEE peers ----------
 [[instrument]]
@@ -152,6 +171,9 @@ source = "yahoo"
 symbol = "WIG20.WA"
 note = "Yahoo gives the live level but no past closes, so the averages fill in as our own daily closes build up."
 chart = "https://finance.yahoo.com/quote/WIG20.WA/"
+tradingview = "GPW:WIG20"
+tradingview_range = "12M"
+tradingview_label = "End-of-day data, not live (TradingView's E badge)."
 
 [[instrument]]
 id = "px"
@@ -161,6 +183,9 @@ market = "prague"
 source = "pse"
 symbol = "XC0009698371"
 chart = "https://www.pse.cz/en/indices/index-values/detail/XC0009698371"
+tradingview = "PSECZ:PX"
+tradingview_range = "12M"
+tradingview_label = "End-of-day data, not live (TradingView's E badge)."
 note = "Not on Yahoo. Read from the Prague Stock Exchange index page. No free history, so the averages fill in as our own daily closes build up."
 
 # ---------- Asia equities ----------
@@ -172,6 +197,8 @@ market = "tokyo"
 source = "yahoo"
 symbol = "^N225"
 chart = "https://finance.yahoo.com/quote/%5EN225/"
+tradingview = "FOREXCOM:JP225"
+tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "hangseng"
@@ -181,6 +208,8 @@ market = "hong_kong"
 source = "yahoo"
 symbol = "^HSI"
 chart = "https://finance.yahoo.com/quote/%5EHSI/"
+tradingview = "CAPITALCOM:HK50"
+tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "shanghai"
@@ -190,6 +219,9 @@ market = "shanghai"
 source = "yahoo"
 symbol = "000001.SS"
 chart = "https://finance.yahoo.com/quote/000001.SS/"
+tradingview = "SSE:000001"
+tradingview_range = "12M"
+tradingview_label = "End-of-day data, not live (TradingView's E badge)."
 
 # ---------- FX ----------
 [[instrument]]
@@ -200,6 +232,8 @@ market = "fx"
 source = "yahoo"
 symbol = "DX-Y.NYB"
 chart = "https://finance.yahoo.com/quote/DX-Y.NYB/"
+tradingview = "CAPITALCOM:DXY"
+tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "eurhuf"
@@ -211,6 +245,7 @@ symbol = "EURHUF=X"
 fallback_source = "mnb"
 fallback_symbol = "EUR"
 chart = "https://finance.yahoo.com/quote/EURHUF%3DX/"
+tradingview = "FX:EURHUF"
 
 [[instrument]]
 id = "usdhuf"
@@ -222,6 +257,7 @@ symbol = "USDHUF=X"
 fallback_source = "mnb"
 fallback_symbol = "USD"
 chart = "https://finance.yahoo.com/quote/USDHUF%3DX/"
+tradingview = "FX:USDHUF"
 
 [[instrument]]
 id = "gbphuf"
@@ -233,6 +269,7 @@ symbol = "GBPHUF=X"
 fallback_source = "mnb"
 fallback_symbol = "GBP"
 chart = "https://finance.yahoo.com/quote/GBPHUF%3DX/"
+tradingview = "FX_IDC:GBPHUF"
 
 [[instrument]]
 id = "eurpln"
@@ -244,6 +281,7 @@ symbol = "EURPLN=X"
 fallback_source = "ecb"
 fallback_symbol = "PLN"
 chart = "https://finance.yahoo.com/quote/EURPLN%3DX/"
+tradingview = "FX_IDC:EURPLN"
 
 [[instrument]]
 id = "eurczk"
@@ -255,6 +293,7 @@ symbol = "EURCZK=X"
 fallback_source = "ecb"
 fallback_symbol = "CZK"
 chart = "https://finance.yahoo.com/quote/EURCZK%3DX/"
+tradingview = "OANDA:EURCZK"
 
 [[instrument]]
 id = "eurusd"
@@ -266,6 +305,7 @@ symbol = "EURUSD=X"
 fallback_source = "ecb"
 fallback_symbol = "USD"
 chart = "https://finance.yahoo.com/quote/EURUSD%3DX/"
+tradingview = "FX:EURUSD"
 
 [[instrument]]
 id = "gbpusd"
@@ -275,6 +315,7 @@ market = "fx"
 source = "yahoo"
 symbol = "GBPUSD=X"
 chart = "https://finance.yahoo.com/quote/GBPUSD%3DX/"
+tradingview = "FX:GBPUSD"
 
 [[instrument]]
 id = "usdjpy"
@@ -284,6 +325,7 @@ market = "fx"
 source = "yahoo"
 symbol = "JPY=X"
 chart = "https://finance.yahoo.com/quote/JPY%3DX/"
+tradingview = "FX:USDJPY"
 
 [[instrument]]
 id = "usdcny"
@@ -293,6 +335,7 @@ market = "fx"
 source = "yahoo"
 symbol = "CNY=X"
 chart = "https://finance.yahoo.com/quote/CNY%3DX/"
+tradingview = "FX_IDC:USDCNY"
 
 # ---------- Government bonds (yields in %) ----------
 [[instrument]]
@@ -457,6 +500,8 @@ market = "ice_brent"
 source = "yahoo"
 symbol = "BZ=F"
 chart = "https://finance.yahoo.com/quote/BZ%3DF/"
+tradingview = "TVC:UKOIL"
+tradingview_label = "CFD: tracks the price, not the official futures value."
 
 [[instrument]]
 id = "wti"
@@ -466,6 +511,8 @@ market = "cme"
 source = "yahoo"
 symbol = "CL=F"
 chart = "https://finance.yahoo.com/quote/CL%3DF/"
+tradingview = "TVC:USOIL"
+tradingview_label = "CFD: tracks the price, not the official futures value."
 
 [[instrument]]
 id = "ttf"
@@ -485,6 +532,8 @@ market = "cme"
 source = "yahoo"
 symbol = "GC=F"
 chart = "https://finance.yahoo.com/quote/GC%3DF/"
+tradingview = "TVC:GOLD"
+tradingview_label = "CFD: tracks the price, not the official futures value."
 
 [[instrument]]
 id = "silver"
@@ -494,6 +543,8 @@ market = "cme"
 source = "yahoo"
 symbol = "SI=F"
 chart = "https://finance.yahoo.com/quote/SI%3DF/"
+tradingview = "TVC:SILVER"
+tradingview_label = "CFD: tracks the price, not the official futures value."
 
 [[instrument]]
 id = "copper"
@@ -503,6 +554,8 @@ market = "cme"
 source = "yahoo"
 symbol = "HG=F"
 chart = "https://finance.yahoo.com/quote/HG%3DF/"
+tradingview = "CAPITALCOM:COPPER"
+tradingview_label = "CFD: tracks the price, not the official futures value."
 
 # ---------- Agriculture ----------
 [[instrument]]
@@ -513,6 +566,8 @@ market = "cbot_grains"
 source = "yahoo"
 symbol = "ZW=F"
 chart = "https://finance.yahoo.com/quote/ZW%3DF/"
+tradingview = "OANDA:WHEATUSD"
+tradingview_label = "CFD: tracks the price, not the official futures value."
 
 [[instrument]]
 id = "corn"
@@ -522,6 +577,8 @@ market = "cbot_grains"
 source = "yahoo"
 symbol = "ZC=F"
 chart = "https://finance.yahoo.com/quote/ZC%3DF/"
+tradingview = "OANDA:CORNUSD"
+tradingview_label = "CFD: tracks the price, not the official futures value."
 
 # ---------- Volatility ----------
 [[instrument]]
@@ -551,6 +608,7 @@ market = "crypto"
 source = "yahoo"
 symbol = "BTC-USD"
 chart = "https://finance.yahoo.com/quote/BTC-USD/"
+tradingview = "BITSTAMP:BTCUSD"
 
 # ---------- Trading hours (local time, Monday to Friday) ----------
 # Standard published hours. shortcut: no holiday calendar and no lunch breaks, so on a

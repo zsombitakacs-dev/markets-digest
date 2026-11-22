@@ -260,7 +260,7 @@ function fillDetail(td, r, chartNo) {
   }
   fig.append(cap, plot, legend, src);
   box.append(fig, indicators(r));
-  if (r.tradingview) box.append(liveWidget(r.tradingview));
+  if (r.tradingview) box.append(liveWidget(r));
   td.append(box);
 
   history().then((h) => drawChart(plot, h[r.id], r.kind)).catch(() => {
@@ -301,12 +301,16 @@ function indicators(r) {
   return wrap;
 }
 
-function liveWidget(symbol) {
+function liveWidget(r) {
+  const symbol = r.tradingview;
   const box = el('div', 'live');
-  box.append(el('p', 'live-title', 'Live price from TradingView'));
-  box.append(explain('A second, independent live quote. It can differ slightly from ours (a different feed or contract); our numbers above are the ones the digest uses.'));
+  box.append(el('p', 'live-title', 'Price from TradingView'));
+  // Always shown, not only with "Explain terms": e.g. a CFD's level is not the official one.
+  if (r.tradingview_label) box.append(el('p', 'note', `${symbol}: ${r.tradingview_label}`));
+  box.append(explain('A second, independent quote. It can differ slightly from ours (a different feed or contract); our numbers above are the ones the digest uses.'));
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-  const cfg = { symbol, width: '100%', height: '100%', locale: 'en', dateRange: '1D', colorTheme: dark ? 'dark' : 'light', isTransparent: true, autosize: true };
+  // 1M (one month of chart) is the span every symbol was checked at; a few need 12M.
+  const cfg = { symbol, width: '100%', height: '100%', locale: 'en', dateRange: r.tradingview_range || '1M', colorTheme: dark ? 'dark' : 'light', isTransparent: true, autosize: true };
   const f = el('iframe', 'live-frame');
   f.src = TV_FRAME + encodeURIComponent(JSON.stringify(cfg));
   f.title = `Live ${symbol} price from TradingView`;

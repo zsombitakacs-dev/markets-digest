@@ -349,3 +349,11 @@ average.
 A switch at the top shows or hides the plain-English notes. The reader's choice is saved in their own browser
 (`localStorage`), so it is remembered on that device only and never sent anywhere. If the browser blocks storage (e.g. a
 private window), the switch still works and simply starts "on" next time.
+
+### CFDs in the TradingView widgets
+A **CFD** (contract for difference) is a contract a broker offers on an asset's price: you gain or lose the change in
+price without owning the asset. TradingView's free widgets are not allowed to show many official index and futures
+prices (they say "Permission denied"), but they can show brokers' CFDs, which follow the market closely. So the S&P 500
+row's live widget shows `FOREXCOM:SPXUSD`, a CFD, and the page says so: it tracks the index, not the official value. A few widgets (WIG20, PX, Shanghai) only have end-of-day data, marked E by TradingView, and the page labels those too. Our
+own numbers, from the official sources, stay the ones the digest uses. Every symbol in `config/instruments.toml` was
+checked in a real browser; yields and the VIX have no widget, as none was allowed.

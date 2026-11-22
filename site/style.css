@@ -47,6 +47,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }  /* beats display: flex/grid on hidden elements */
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
