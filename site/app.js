@@ -159,7 +159,8 @@ async function getJSON(path) {
   return res.json();
 }
 let historyP;
-const history = () => (historyP ||= getJSON('history.json'));
+// One download, shared by every chart; forgotten after a failure so the next chart retries.
+const history = () => (historyP ||= getJSON('history.json').catch((e) => { historyP = null; throw e; }));
 
 // ---------- Tables ----------
 
