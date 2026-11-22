@@ -1,12 +1,17 @@
-# Daily at 14:35 London time: fetch, recalculate and commit latest.json to the data repo, so the
-# 14:45 digest task reads data about 10 minutes old.
+# Daily at 14:35 London time: fetch, recalculate and commit latest.json and the email tables to the
+# data repo, so the 14:45 digest reads data about 10 minutes old.
+#
+# Schedules are plain UTC. 14:35 London is 13:35 UTC in summer and 14:35 UTC in winter, so both run
+# and the "gate" job lets only the right one through (pipeline/schedule_gate.py). Not the
+# `timezone:` key: with Europe/London set, runs on 21 and 22 Nov 2026 started at 20:39 and 20:49 UTC,
+# i.e. 14:35 US Central. The intraday workflow commits the same data at 14:30-14:40 London as a backup.
 name: pre-digest
 
 on:
   schedule:
-    - cron: "35 14 * * *"
-      timezone: "Europe/London"  # GitHub follows UK summer time itself (supported since March 2026)
-  workflow_dispatch:
+    - cron: "35 13 * * *"  # 14:35 London in summer (BST)
+    - cron: "35 14 * * *"  # 14:35 London in winter (GMT)
+  workflow_dispatch:  # always runs
 
 permissions:
   contents: read  # this repo is only read; the data repo is written with DATA_REPO_TOKEN
@@ -16,7 +21,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      due: ${{ steps.check.outputs.due }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: pipeline
+
+      - name: Is this the run for 14:35 London?
+        id: check
+        env:
+          CRON: ${{ github.event.schedule }}  # empty for a manual run
+        run: |
+          due=$(python3 -m pipeline.schedule_gate predigest "$CRON")
+          echo "cron '$CRON': due=$due"
+          echo "due=$due" >> "$GITHUB_OUTPUT"
+
   run:
+    needs: gate
+    if: needs.gate.outputs.due == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:

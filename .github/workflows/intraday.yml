@@ -1,12 +1,19 @@
 # Every 5 minutes on weekdays, 07:00-21:00 UTC: fetch prices, recalculate, deploy the
-# dashboard. Nothing is committed: the newest latest.json is carried from run to run in the
+# dashboard. Normally nothing is committed: the newest latest.json is carried from run to run in the
 # Actions cache instead (see "state" below), so the data repo only gets a few commits a day.
+# One exception, the digest backup: between 14:30 and 14:40 London, if the pre-digest run has not
+# committed today's data yet, one intraday run commits latest.json and the email tables itself.
 name: intraday
 
 on:
   schedule:
     - cron: "2-59/5 7-20 * * 1-5"  # :02, :07, ... :57 UTC. Off the hour: on-the-hour runs start late most often.
   workflow_dispatch:  # a "Run workflow" button, for testing
+    inputs:
+      force_backup:
+        description: "Run the digest backup now, whatever the time (to test it)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -55,7 +62,7 @@ jobs:
           token: ${{ secrets.DATA_REPO_TOKEN }}
           path: markets-digest-data
           sparse-checkout: data  # the price history and latest.json; not digests or exports
-          persist-credentials: false  # read only: this workflow never pushes
+          persist-credentials: false  # no stored token: only the digest backup pushes, passing it itself
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         id: python
@@ -91,6 +98,34 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.158.0"
           command: pages deploy _site --project-name=markets-digest --branch=main --commit-dirty=true
+
+      # Backup for the 14:45 digest, in case the pre-digest run starts late or not at all.
+      # schedule_gate reads the committed latest.json (not this run's) to see whether today's is there.
+      - name: Digest backup (14:30-14:40 London, only if pre-digest has not committed)
+        if: steps.run.outcome == 'success'
+        continue-on-error: true  # a failed backup leaves the digest's own staleness warning
+        env:
+          TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          FORCE: ${{ inputs.force_backup }}  # empty on scheduled runs
+        run: |
+          due=$(git -C "$DATA_DIR" show HEAD:data/latest.json 2>/dev/null | python -m pipeline.schedule_gate backup)
+          if [ "$FORCE" = true ]; then due=true; fi
+          if [ "$due" != true ]; then echo "backup not needed"; exit 0; fi
+          python -m pipeline.email_tables
+          cd "$DATA_DIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet && exit 0
+          git commit --quiet -m "Pre-digest data $(date -u +%Y-%m-%dT%H:%MZ) (intraday backup)"
+          url="https://x-access-token:${TOKEN}@github.com/zsombitakacs-dev/markets-digest-data.git"
+          if ! git pull --quiet --rebase "$url" main; then
+            git rebase --abort
+            echo "::warning::Digest backup not pushed: the data repo changed meanwhile (the pre-digest run probably just committed)."
+            exit 0
+          fi
+          git push --quiet "$url" HEAD:main
+          echo "::notice::Digest backup committed: the pre-digest run had not committed today's data by now."
 
       - name: Count failures in a row
         id: count

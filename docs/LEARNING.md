@@ -257,7 +257,12 @@ thrown away. A full run takes about 6 seconds of fetching, plus about a minute o
 ### Cron schedule
 A cron line is five fields: minute, hour, day of month, month, day of week. `2-59/5 7-20 * * 1-5` means minute 2, 7, 12,
 ... 57, of hours 07 to 20, any day of the month, any month, Monday (1) to Friday (5): 07:02 to 20:57 UTC. Times are UTC
-unless a `timezone:` is given; `pre-digest` sets `Europe/London`, so it stays at 14:35 UK time when the clocks change.
+in UTC. `pre-digest` first used GitHub's `timezone: Europe/London` key, but its runs on 21 and 22 Nov 2026 started at
+20:39 and 20:49 UTC: 14:35 in US Central time, six hours late. So it now runs at both 13:35 and 14:35 UTC, and a
+first "gate" job (`pipeline/schedule_gate.py`) lets through only the one that is 14:35 in London that day (13:35 UTC
+in summer, 14:35 UTC in winter). It decides from the cron that fired, not the clock, so a run that starts late still
+goes ahead. As a backup, an intraday run between 14:30 and 14:40 London commits the data itself if the pre-digest
+run has not. Lesson: test a scheduling feature with a real run before relying on it.
 Runs that start exactly on the hour are the most often delayed (everyone picks :00), so ours are a few minutes off it.
 GitHub schedules are best-effort: at busy times a run can start late or be skipped.
 

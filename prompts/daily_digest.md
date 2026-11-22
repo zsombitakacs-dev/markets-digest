@@ -64,12 +64,16 @@ Work out today's date in Europe/London. Monday to Friday = **weekday digest**, S
 2. The `run_at` at the top of both table files must equal `run_at` in `latest.json`. If not, the
    tables are out of date: do not use them. In the markets section write one line, "The market table
    is unavailable today; see the live dashboard", and keep the dashboard link.
-3. Freshness. Data should come from the 14:35 UK update, about 10 minutes old.
-   - Weekdays: if `run_at` is more than 2 hours before now, add this line straight under the
-     one-sentence summary: "Market data is from <run_at in UK time>, not this afternoon: the
-     scheduled update ran late." Never describe old numbers as today's.
-   - Weekends: data from Friday's or Saturday's runs is expected; no warning needed unless `run_at`
-     is more than 3 days old.
+3. Freshness. Data should come from the 14:35 UK update (or its backup at 14:30 to 14:40), about
+   10 minutes old when you send. **Data whose `run_at` is more than 30 minutes before the time you
+   send is stale**, on any day. When it is stale:
+   - add this line straight under the one-sentence summary: "Market data is from <run_at in UK
+     time>, not this afternoon: the scheduled update ran late.";
+   - describe every market number with that time ("as of 09:12", "at Friday's close"), never as
+     "today", "now" or "in early trading";
+   - say so in your run report.
+   At weekends most markets are shut, so stale data still shows Friday's close correctly; the
+   warning line is still added.
 4. **The market numbers you may use in the text are only those in `latest.json` (or the tables made
    from it).** If an instrument's `value` is null or `suspect` is true, it is unavailable: say so
    if you mention it, and never estimate it, round it from memory or take it from a news story.
