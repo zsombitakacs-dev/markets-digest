@@ -44,7 +44,7 @@ const OPTIONS_HELP = {
   iv: 'Implied volatility of the option closest to today’s price: the yearly swing the options market is pricing in. Compare it with realised volatility in the tables above: implied above realised means traders are paying up for protection.',
   pcv: 'Puts traded today per call traded. Above 1 means more bets on, or protection against, a fall.',
   pcoi: 'The same for all contracts still open (open interest), not just today’s trades.',
-  calls: 'The call strikes with the most open contracts: levels many traders have bets above.',
+  calls: 'The call strikes with the most open contracts (the number in brackets): levels many traders have bets above.',
   puts: 'The put strikes with the most open contracts: levels many traders are protected below.',
   monthly: 'Monthly options expire on the third Friday of the month.',
   quarterly: 'Quarterly expiries fall in March, June, September and December, and are usually the largest.',
@@ -213,6 +213,7 @@ function groupTable(group, rows, tableNo, chartStart) {
   const section = el('section', 'group');
   section.id = slug(group);
   const h = el('h2', 'caption');
+  h.id = section.id + '-title';
   h.append(el('span', 'caption-no', `Table ${tableNo}`), group);
   section.append(h);
   if (GROUP_HELP[group]) section.append(explain(GROUP_HELP[group], 'p'));
@@ -220,6 +221,7 @@ function groupTable(group, rows, tableNo, chartStart) {
 
   const wrap = el('div', 'table-wrap');
   const table = el('table', 'stats');
+  table.setAttribute('aria-labelledby', h.id);
   const head = el('tr');
   [['Instrument', 'col-name'], ['Last', 'num col-last'], ['Change', 'num col-chg'],
     ['vs 50-day', 'num col-ma'], ['vs 200-day', 'num col-ma'], ['52-week range', 'col-range']]
@@ -360,17 +362,19 @@ function optionsTable(opts, tableNo) {
   const section = el('section', 'group');
   section.id = 'options';
   const h = el('h2', 'caption');
+  h.id = 'options-title';
   h.append(el('span', 'caption-no', `Table ${tableNo}`), `Options: ${syms.join(' and ') || 'none'}`);
   section.append(h, explain(OPTIONS_HELP.intro));
   section.lastChild.classList.add('group-help');
   if (!syms.length) { section.append(el('p', 'muted', 'No options data in this update.')); return section; }
 
-  const strikes = (list) => (list || []).map((x) => `${fmt(x.strike, 0)} (${x.open_interest.toLocaleString('en-GB')})`).join(', ') || '–';
-  const dates = (list) => (list || []).map((d) => plainDate.format(new Date(d + 'T12:00:00Z'))).join(', ') || '–';
+  // Lists come back as arrays: one line each, so a strike never splits from its contract count.
+  const strikes = (list) => (list || []).map((x) => `${fmt(x.strike, 0)} (${x.open_interest.toLocaleString('en-GB')})`);
+  const dates = (list) => (list || []).map((d) => plainDate.format(new Date(d + 'T12:00:00Z')));
   const n2 = (v) => (isNum(v) ? fmt(v, 2) : '–');
   const rowsDef = [
     ['Fund price', 'underlying', (o) => (isNum(o.underlying_price) ? `${fmt(o.underlying_price, 2)} · ${when(o.underlying_time)}` : '–')],
-    ['Expiry used', 'expiry', (o) => (o.expiry ? `${dates([o.expiry])} (${o.days_to_expiry} days)` : '–')],
+    ['Expiry used', 'expiry', (o) => (o.expiry ? `${dates([o.expiry])[0]} (${o.days_to_expiry} days)` : '–')],
     ['At-the-money implied volatility', 'iv', (o) => (isNum(o.atm_iv) ? `${fmt(o.atm_iv, 1)}% a year (strike ${fmt(o.atm_strike, 0)})` : '–')],
     ['Put/call ratio, volume', 'pcv', (o) => n2(o.put_call_volume)],
     ['Put/call ratio, open interest', 'pcoi', (o) => n2(o.put_call_oi)],
@@ -381,6 +385,7 @@ function optionsTable(opts, tableNo) {
   ];
   const wrap = el('div', 'table-wrap');
   const table = el('table', 'stats options');
+  table.setAttribute('aria-labelledby', 'options-title');
   const head = el('tr');
   head.append(el('th', 'col-name', ''));
   syms.forEach((s) => { const th = el('th', 'num', s); th.scope = 'col'; head.append(th); });
@@ -393,7 +398,13 @@ function optionsTable(opts, tableNo) {
     th.scope = 'row';
     th.append(el('span', 'opt-label', label), explain(OPTIONS_HELP[key], 'span'));
     tr.append(th);
-    syms.forEach((s) => tr.append(el('td', 'num', f(opts[s] || {}))));
+    syms.forEach((s) => {
+      const v = f(opts[s] || {});
+      const td = el('td', 'num');
+      if (Array.isArray(v)) v.length ? v.forEach((line) => td.append(el('span', 'line', line))) : td.append('–');
+      else td.append(v);
+      tr.append(td);
+    });
     tbody.append(tr);
   });
   table.append(thead, tbody);

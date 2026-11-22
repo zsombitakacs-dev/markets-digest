@@ -67,7 +67,7 @@ a:hover { text-decoration-thickness: 2px; }
 .masthead-inner, .contents, main, .colophon { max-width: 1080px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
 .masthead-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 16px; padding-bottom: 12px; flex-wrap: wrap; }
 .brand { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; }
-.wordmark { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.wordmark { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
 .updated { font-size: 14px; color: var(--muted); }
 
 .switch {
@@ -80,7 +80,7 @@ a:hover { text-decoration-thickness: 2px; }
 .switch[aria-checked="true"] .switch-track { background: var(--ink); }
 .switch[aria-checked="true"] .switch-thumb { transform: translateX(16px); }
 
-.contents { display: flex; gap: 4px 18px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; font-size: 14px; }
+.contents { display: flex; flex-wrap: wrap; gap: 0 18px; padding-bottom: 10px; scrollbar-width: none; font-size: 14px; }
 .contents::-webkit-scrollbar { display: none; }
 .contents a { white-space: nowrap; color: var(--muted); text-decoration: none; padding: 6px 0; }
 .contents a:hover { color: var(--ink); text-decoration: underline; }
@@ -177,6 +177,7 @@ tr.inst:hover > *, tr.inst.is-open > * { background: var(--band); }
 .opt-label { display: block; font-weight: 600; color: var(--ink); }
 .options .explain { display: block; font-weight: 400; }
 .options td.num { white-space: normal; }
+.options .line { display: block; white-space: nowrap; }
 
 /* ---------- Footer ---------- */
 .colophon { margin-top: 48px; padding-top: 16px; padding-bottom: 32px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
@@ -189,6 +190,7 @@ tr.inst:hover > *, tr.inst.is-open > * { background: var(--band); }
   .detail { padding: 14px 8px 18px; }
   .options tbody th { width: auto; }
   .group { margin-top: 32px; }
+  .contents { flex-wrap: nowrap; overflow-x: auto; }  /* one swipeable line on phones */
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
