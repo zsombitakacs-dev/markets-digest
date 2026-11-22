@@ -17,6 +17,8 @@
 #   tradingview      symbol for the dashboard's live TradingView widget, only where the free widget
 #                    showed data in a real browser (checked 2026-11-22); none for yields or the VIX
 #   tradingview_range  the widget's chart span when the default (1M, one month) shows no data: "12M"
+#   email            true = one of the ~20 headline rows in the daily email's market table; the
+#                    others appear there only as a "notable move" (see pipeline/email_tables.py)
 #   tradingview_label  shown under the widget when it is not the official live value (a CFD, end-of-day data)
 #
 # Every symbol was checked with a real fetch on 2026-11-20.
@@ -24,6 +26,7 @@
 # ---------- US equities ----------
 [[instrument]]
 id = "sp500"
+email = true
 name = "S&P 500"
 group = "US equities"
 market = "new_york"
@@ -35,6 +38,7 @@ tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "nasdaq"
+email = true
 name = "Nasdaq Composite"
 group = "US equities"
 market = "new_york"
@@ -77,6 +81,7 @@ tradingview_label = "CFD on the Nasdaq 100 index, not the official futures price
 # ---------- UK and Europe equities ----------
 [[instrument]]
 id = "ftse100"
+email = true
 name = "FTSE 100"
 group = "UK and Europe equities"
 market = "london"
@@ -88,6 +93,7 @@ tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "dax"
+email = true
 name = "DAX"
 group = "UK and Europe equities"
 market = "frankfurt"
@@ -109,6 +115,7 @@ chart = "https://finance.yahoo.com/quote/%5ESTOXX/"
 # ---------- Hungary equities ----------
 [[instrument]]
 id = "bux"
+email = true
 name = "BUX"
 group = "Hungary equities"
 market = "budapest"
@@ -121,6 +128,7 @@ note = "Not on Yahoo. Read from the Budapest Stock Exchange home page, which giv
 
 [[instrument]]
 id = "otp"
+email = true
 name = "OTP Bank"
 group = "Hungary equities"
 market = "budapest"
@@ -164,6 +172,7 @@ tradingview = "BET:MTELEKOM"
 # ---------- CEE peers ----------
 [[instrument]]
 id = "wig20"
+email = true
 name = "WIG20"
 group = "CEE peers"
 market = "warsaw"
@@ -191,6 +200,7 @@ note = "Not on Yahoo. Read from the Prague Stock Exchange index page. No free hi
 # ---------- Asia equities ----------
 [[instrument]]
 id = "nikkei"
+email = true
 name = "Nikkei 225"
 group = "Asia equities"
 market = "tokyo"
@@ -202,6 +212,7 @@ tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "hangseng"
+email = true
 name = "Hang Seng"
 group = "Asia equities"
 market = "hong_kong"
@@ -237,6 +248,7 @@ tradingview_label = "CFD: tracks the index, not the official value."
 
 [[instrument]]
 id = "eurhuf"
+email = true
 name = "EUR/HUF"
 group = "FX"
 market = "fx"
@@ -297,6 +309,7 @@ tradingview = "OANDA:EURCZK"
 
 [[instrument]]
 id = "eurusd"
+email = true
 name = "EUR/USD"
 group = "FX"
 market = "fx"
@@ -350,6 +363,7 @@ note = "FRED publishes the previous day's close, so this is about one business d
 
 [[instrument]]
 id = "us10y"
+email = true
 name = "US Treasury 10-year"
 group = "Government bonds"
 market = "new_york"
@@ -373,6 +387,7 @@ note = "Bank of England nominal spot (zero-coupon) curve, published the next bus
 
 [[instrument]]
 id = "uk10y"
+email = true
 name = "UK gilt 10-year"
 group = "Government bonds"
 kind = "rate"
@@ -393,6 +408,7 @@ note = "Yield of the newest 2-year Federal Treasury note (Schatz)."
 
 [[instrument]]
 id = "de10y"
+email = true
 name = "German Bund 10-year"
 group = "Government bonds"
 kind = "rate"
@@ -422,6 +438,7 @@ note = "ÁKK official benchmark yield. Stands in for the 2-year, which ÁKK does
 
 [[instrument]]
 id = "hu10y"
+email = true
 name = "Hungary government bond 10-year"
 group = "Government bonds"
 kind = "rate"
@@ -474,6 +491,7 @@ note = "ICE BofA US Corporate index option-adjusted spread, in percentage points
 
 [[instrument]]
 id = "us_hy_oas"
+email = true
 name = "US high-yield credit spread"
 group = "Credit and risk"
 kind = "rate"
@@ -494,6 +512,7 @@ note = "No free source found (checked Yahoo, FRED, ECB, MNB, ÁKK). CDS prices a
 # ---------- Energy and metals ----------
 [[instrument]]
 id = "brent"
+email = true
 name = "Brent crude"
 group = "Energy and metals"
 market = "ice_brent"
@@ -516,6 +535,7 @@ tradingview_label = "CFD: tracks the price, not the official futures value."
 
 [[instrument]]
 id = "ttf"
+email = true
 name = "European natural gas (TTF)"
 group = "Energy and metals"
 market = "ice_endex"
@@ -526,6 +546,7 @@ note = "Front-month Dutch TTF futures, EUR per MWh."
 
 [[instrument]]
 id = "gold"
+email = true
 name = "Gold"
 group = "Energy and metals"
 market = "cme"
@@ -583,6 +604,7 @@ tradingview_label = "CFD: tracks the price, not the official futures value."
 # ---------- Volatility ----------
 [[instrument]]
 id = "vix"
+email = true
 name = "VIX"
 group = "Volatility"
 market = "new_york"

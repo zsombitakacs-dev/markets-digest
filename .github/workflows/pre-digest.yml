@@ -52,6 +52,12 @@ jobs:
           if [ -f state/latest.json ]; then cp state/latest.json "$DATA_DIR/data/latest.json"; fi
           python -m pipeline.run
 
+      # The email's number tables, from the latest.json just written. Also after a failed fetch, so the
+      # tables never lag behind latest.json (the digest task checks their run times match).
+      - name: Render the email tables
+        if: ${{ !cancelled() }}
+        run: python -m pipeline.email_tables
+
       - name: Commit to the data repo
         if: ${{ !cancelled() }}  # also after a run with most values missing: the digest says what is unavailable
         working-directory: markets-digest-data
