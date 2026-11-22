@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<!--
+  Markets Digest: the daily email. Filled in by the scheduled Claude task (prompts/daily_digest.md).
+
+  How to fill it:
+  - {{NAME}} is a slot for words the task writes. {{BLOCK:name}} is a slot for a block copied
+    unchanged from data/email_tables.html in the data repo (the pipeline renders every number).
+  - <!- - repeat NAME - -> ... <!- - end repeat NAME - -> is copied once per item.
+  - <!- - section NAME - -> ... <!- - end section NAME - -> is kept or deleted whole (see the prompt).
+  - The SNIPPETS at the end are the only extra markup allowed inside a section body.
+  - Before sending: delete every comment (including this one) and check no "{{" is left.
+
+  Email rules: tables and inline styles only (no flexbox, grid, SVG, images, scripts or web fonts).
+  The <style> block only adds phone and dark-mode tweaks; every colour also sits inline.
+  Light colours are the dashboard's (DESIGN.md); dark ones are its dark theme.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{SUBJECT}}</title>
+<style>
+  body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
+  a { color: #1b2f4e; text-underline-offset: 2px; }
+  @media (max-width: 480px) {
+    .hide-sm { display: none !important; }
+    .px { padding-left: 18px !important; padding-right: 18px !important; }
+    .outer-pad { padding: 0 !important; }
+    .lead { font-size: 18px !important; line-height: 26px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    body, .outer { background: #0b0f15 !important; }
+    .paper { background: #10151d !important; color: #e3e7ee !important; }
+    .band { background: #171e29 !important; }
+    .panel { background: #171e29 !important; border-color: #2a3443 !important; }
+    .ink, .ink a, a { color: #c3d3ee !important; }
+    .txt { color: #e3e7ee !important; }
+    .mut { color: #9ba5b5 !important; }
+    .up { color: #5cc97b !important; }
+    .dn { color: #f2786d !important; }
+    .acc { background: #2d2414 !important; color: #f0c27f !important; }
+    .warn { background: #33290f !important; color: #f4cf7a !important; }
+    .bar { background: #2a3443 !important; }
+    .ink-bg { background: #c3d3ee !important; }
+    .paper table { border-color: #8fa3c4 !important; }
+    .paper td, .paper table.rule { border-color: #2a3443 !important; }
+    .paper th { border-color: #8fa3c4 !important; }
+  }
+</style>
+</head>
+<body class="outer" style="margin:0;padding:0;background:#eef1f5;">
+<!-- Inbox preview text: one line, shown after the subject in the inbox list. -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#eef1f5;">{{PREHEADER}}</div>
+<table role="presentation" class="outer" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef1f5;">
+<tr><td class="outer-pad" align="center" style="padding:24px 12px;">
+<table role="presentation" class="paper" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;color:#1d2430;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:23px;">
+
+  <!-- Header: wordmark and date, the day in one sentence, read time and data time -->
+  <tr><td class="px" style="padding:28px 32px 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="rule-ink" style="border-bottom:2px solid #1b2f4e;">
+      <tr>
+        <td class="ink" style="padding:0 0 10px;font-size:20px;line-height:26px;font-weight:700;letter-spacing:-0.01em;color:#1b2f4e;">Markets Digest</td>
+        <td class="mut" align="right" style="padding:0 0 10px;font-size:13px;line-height:26px;color:#586273;white-space:nowrap;">{{DATE}}</td>
+      </tr>
+    </table>
+    <h1 class="lead txt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:20px 0 10px;font-size:20px;line-height:28px;font-weight:600;color:#1d2430;">{{ONE_SENTENCE}}</h1>
+    <p class="mut" style="margin:0;font-size:13px;line-height:20px;color:#586273;">{{READ_TIME}} min read · Data as of {{DATA_AS_OF}} UK · <a href="https://markets-digest.pages.dev/" target="_blank" rel="noopener noreferrer" style="color:#1b2f4e;font-weight:600;">Live dashboard</a></p>
+  </td></tr>
+
+  <!-- section top5 (weekdays; Saturday: "Weekend headlines", Sunday: "The week's three biggest stories") -->
+  <tr><td class="px" style="padding:28px 32px 0;">
+    <h2 class="ink" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0 0 6px;font-size:18px;line-height:24px;font-weight:650;color:#1b2f4e;">{{TOP_TITLE}}</h2>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <!-- repeat top -->
+      <tr>
+        <td class="ink" width="26" style="width:26px;padding:8px 0;vertical-align:top;font-size:15px;line-height:23px;font-weight:700;color:#1b2f4e;border-bottom:1px solid #d9dee6;">{{N}}</td>
+        <td class="txt" style="padding:8px 0;vertical-align:top;font-size:15px;line-height:23px;color:#1d2430;border-bottom:1px solid #d9dee6;">{{ITEM}}</td>
+      </tr>
+      <!-- end repeat top -->
+    </table>
+  </td></tr>
+  <!-- end section top5 -->
+
+  <!-- section markets (weekdays and Saturday) -->
+  <tr><td class="px" style="padding:32px 32px 0;">
+    {{BLOCK:markets}}
+    {{BLOCK:notable}}
+    <p style="margin:16px 0 0;font-size:14px;line-height:21px;"><a href="https://markets-digest.pages.dev/" target="_blank" rel="noopener noreferrer" style="color:#1b2f4e;font-weight:600;">All 54 instruments, charts and live prices on the dashboard →</a></p>
+  </td></tr>
+  <!-- end section markets -->
+
+  <!-- section week (Sunday only: the week's performance) -->
+  <tr><td class="px" style="padding:32px 32px 0;">
+    {{BLOCK:week}}
+  </td></tr>
+  <!-- end section week -->
+
+  <!-- repeat section: one per section with something material, in the prompt's order.
+       Data surprises, central bank watch and week ahead use the table snippet below as the body;
+       the options corner is its text followed by {{BLOCK:options}} (see SNIPPETS). -->
+  <tr><td class="px" style="padding:32px 32px 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="rule" style="border-top:1px solid #d9dee6;">
+      <tr><td style="padding:24px 0 0;">
+        <h2 class="ink" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0 0 8px;font-size:18px;line-height:24px;font-weight:650;color:#1b2f4e;">{{SECTION_TITLE}}{{SECTION_TAG}}</h2>
+        {{SECTION_BODY}}
+      </td></tr>
+    </table>
+  </td></tr>
+  <!-- end repeat section -->
+
+  <!-- section learning (Learning corner: last section on weekdays and Sundays) -->
+  <tr><td class="px" style="padding:32px 32px 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="panel" style="background:#f3f5f8;border:1px solid #d9dee6;border-radius:4px;">
+      <tr><td style="padding:18px 20px;">
+        <p class="mut" style="margin:0 0 4px;font-size:13px;line-height:18px;font-weight:600;color:#586273;">Learning corner</p>
+        <h2 class="ink" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0 0 6px;font-size:18px;line-height:24px;font-weight:650;color:#1b2f4e;">{{TERM}}</h2>
+        <p class="txt" style="margin:0;font-size:15px;line-height:23px;color:#1d2430;">{{EXPLAINER}}</p>
+      </td></tr>
+    </table>
+  </td></tr>
+  <!-- end section learning -->
+
+  <!-- Footer -->
+  <tr><td class="px" style="padding:32px 32px 32px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="rule-ink" style="border-top:2px solid #1b2f4e;">
+      <tr><td class="mut" style="padding:14px 0 0;font-size:12.5px;line-height:19px;color:#586273;">
+        <strong class="ink" style="color:#1b2f4e;">For information only, not investment advice. Private: please do not forward.</strong><br>
+        Numbers are from our own pipeline at {{DATA_AS_OF}} UK; each market's state and time are shown beside it. Some prices are delayed about 15 minutes by the exchange. News is summarised in our own words, with a link to each source.
+      </td></tr>
+    </table>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>
+<!-- SNIPPETS: copy these into {{SECTION_BODY}} or {{ITEM}}. Delete this block before sending.
+
+Paragraph (about 80 words per regional section; keep paragraphs short):
+<p class="txt" style="margin:0 0 12px;font-size:15px;line-height:23px;color:#1d2430;">Text with a <a href="https://www.reuters.com/..." target="_blank" rel="noopener noreferrer" style="color:#1b2f4e;">source link</a>.</p>
+
+Source link (at the end of an item, after the facts):
+<a href="https://..." target="_blank" rel="noopener noreferrer" style="color:#1b2f4e;">Reuters</a>
+
+One-line item (for sections listed as one line per item):
+<p class="txt" style="margin:0 0 8px;font-size:15px;line-height:23px;color:#1d2430;"><strong class="ink" style="color:#1b2f4e;">Topic.</strong> One line of facts. <a href="https://..." target="_blank" rel="noopener noreferrer" style="color:#1b2f4e;">Source</a></p>
+
+Event label, after a section title in {{SECTION_TAG}} or before an item (e.g. "MNB decision today", "Earnings season"):
+&nbsp;<span class="acc" style="background:#fbf1e2;color:#7f4a00;padding:1px 7px;border-radius:3px;font-size:12px;line-height:18px;font-weight:600;vertical-align:2px;">MNB decision today</span>
+
+Unavailable label (a missing or suspect number):
+<span class="warn" style="background:#fff3d6;color:#7a4300;padding:1px 6px;border-radius:3px;font-size:12px;font-weight:600;">Unavailable</span>
+
+Up / down in text (always arrow and colour together):
+<span class="up" style="color:#17773a;font-weight:600;">▲ 1.29%</span>   <span class="dn" style="color:#b8322a;font-weight:600;">▼ 14.0 bp</span>
+
+Table (data surprises, central bank watch, week ahead). Header row, then one row per item; every
+other row gets class="band" style="background:#f3f5f8;". Numbers right-aligned, words left-aligned.
+<table role="presentation" class="txt" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-top:2px solid #1b2f4e;border-bottom:2px solid #1b2f4e;font-size:14px;line-height:20px;color:#1d2430;font-variant-numeric:tabular-nums;">
+<tr>
+<td class="mut" style="padding:6px 8px;font-size:12px;line-height:16px;font-weight:600;color:#586273;border-bottom:1px solid #1b2f4e;">Release</td>
+<td class="mut" style="padding:6px 8px;font-size:12px;line-height:16px;font-weight:600;color:#586273;border-bottom:1px solid #1b2f4e;text-align:right;">Actual</td>
+</tr>
+<tr>
+<td style="padding:7px 8px;border-bottom:1px solid #d9dee6;vertical-align:top;"><span class="ink" style="color:#1b2f4e;font-weight:600;">US CPI, Oct, y/y</span><br><span class="mut" style="color:#586273;font-size:12px;line-height:16px;">13:30 UK · <a href="https://www.bls.gov/..." style="color:#586273;">BLS</a></span></td>
+<td style="padding:7px 8px;border-bottom:1px solid #d9dee6;vertical-align:top;text-align:right;white-space:nowrap;font-weight:600;">3.1%</td>
+</tr>
+</table>
+Columns: data surprises = Release | Actual | Consensus | Previous (Actual in bold; under the release
+name, the time and the source link). Central bank watch = Bank | Rate | Next meeting | Market odds.
+Week ahead = Day | Event (with why it matters in one muted line under it).
+
+Options corner body: two or three sentences, then a spacer, then the block, pasted unchanged:
+<p class="txt" style="margin:0 0 12px;font-size:15px;line-height:23px;color:#1d2430;">Commentary.</p>
+<div style="height:4px;line-height:4px;font-size:0;">&nbsp;</div>
+{{BLOCK:options}}
+
+Note (the muted line under a table):
+<p class="mut" style="margin:8px 0 0;font-size:12.5px;line-height:18px;color:#586273;">Source: ...</p>
+-->
