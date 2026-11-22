@@ -1,0 +1,14 @@
+# Cloudflare Pages security headers (https://developers.cloudflare.com/pages/configuration/headers/).
+# Scripts, styles and data only from this site; frames only from TradingView's widget hosts
+# (we build the widget iframes ourselves, so no TradingView script runs on our page).
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src https://www.tradingview-widget.com https://s.tradingview.com; frame-ancestors 'none'; base-uri 'none'; form-action 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# The data changes every 5 minutes: never serve a cached copy.
+/latest.json
+  Cache-Control: no-store
+/history.json
+  Cache-Control: no-store

@@ -91,8 +91,9 @@ def build(instruments, markets, results, hist, previous, now):
         market = markets.get(inst.get("market"))
         kind = inst.get("kind", "price")
         res = {**res, "kind": kind, "chart": inst["chart"]}
-        if "note" in inst:
-            res["note"] = inst["note"]
+        for k in ("note", "tradingview"):  # tradingview: symbol for the dashboard's live widget
+            if k in inst:
+                res[k] = inst[k]
         if not inst.get("available", True):
             out[inst["id"]] = {**res, "market_state": None, "suspect": False}
             continue

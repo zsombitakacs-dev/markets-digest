@@ -12,3 +12,6 @@ markets-digest-data/
 
 # macOS
 .DS_Store
+
+# The built dashboard (site/ plus private data), deployed to Cloudflare only. Never commit it.
+_site/

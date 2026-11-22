@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Markets Digest</title>
+<link rel="stylesheet" href="vendor/uPlot.min.css">
+<link rel="stylesheet" href="style.css">
+<script src="vendor/uPlot.iife.min.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">
+      <span class="wordmark">Markets Digest</span>
+      <span class="updated" id="updated">Loading data…</span>
+    </div>
+    <button type="button" class="switch" id="explain" role="switch" aria-checked="true">
+      <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+      Explain terms
+    </button>
+  </div>
+  <nav class="contents" id="contents" aria-label="Sections"></nav>
+</header>
+
+<main id="main">
+  <p class="explain lead">Each table is one group of markets. Tap or click a row to open its chart and every indicator. Green ▲ means up since the previous close, red ▼ means down. Switch “Explain terms” off once you know them.</p>
+  <div id="tables" aria-live="polite"></div>
+</main>
+
+<footer class="colophon">
+  <p>Sources: Yahoo Finance, FRED (St. Louis Fed), Bank of England, Deutsche Bundesbank, ÁKK, MNB, Budapest and Prague stock exchanges, STOXX. Moving averages, ranges and volatility: own calculations. Live widgets: <a href="https://www.tradingview.com/" rel="noopener noreferrer" target="_blank">TradingView</a>.</p>
+  <p>For information only, not investment advice. Private: please do not share this page.</p>
+</footer>
+</body>
+</html>

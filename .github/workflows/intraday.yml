@@ -1,4 +1,4 @@
-# Every 5 minutes on weekdays, 07:00-21:00 UTC: fetch prices, recalculate, (phase 5) deploy the
+# Every 5 minutes on weekdays, 07:00-21:00 UTC: fetch prices, recalculate, deploy the
 # dashboard. Nothing is committed: the newest latest.json is carried from run to run in the
 # Actions cache instead (see "state" below), so the data repo only gets a few commits a day.
 name: intraday
@@ -74,16 +74,30 @@ jobs:
           if [ -f state/latest.json ]; then cp state/latest.json "$DATA_DIR/data/latest.json"; fi
           python -m pipeline.run
 
-      # Phase 5: deploy the dashboard to Cloudflare Pages here (site/ plus latest.json and a trimmed
-      # price history), with Cloudflare's Wrangler action pinned to a commit SHA, using the
-      # CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets.
+      # The dashboard: site/ plus latest.json and a year of chart data, pushed to Cloudflare Pages
+      # (behind Cloudflare Access). The token can only edit Pages projects in this account.
+      - name: Build the dashboard
+        id: site
+        if: steps.run.outcome == 'success'
+        continue-on-error: true
+        run: python -m pipeline.site_data
+
+      - uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0  # v4.1.3
+        id: deploy
+        if: steps.site.outcome == 'success'
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.158.0"
+          command: pages deploy _site --project-name=markets-digest --branch=main --commit-dirty=true
 
       - name: Count failures in a row
         id: count
         if: steps.gate.outputs.skip != 'true'
         run: |
           mkdir -p state
-          if [ "${{ steps.run.outcome }}" = success ]; then fails=0; else fails=$(( $(cat state/fails 2>/dev/null || echo 0) + 1 )); fi
+          if [ "${{ steps.run.outcome }}" = success ] && [ "${{ steps.deploy.outcome }}" = success ]; then fails=0; else fails=$(( $(cat state/fails 2>/dev/null || echo 0) + 1 )); fi
           echo "$fails" > state/fails
           echo "fails=$fails" >> "$GITHUB_OUTPUT"
           # Email at the 3rd failure in a row, then every 12th (about every 2 hours at the backed-off pace).
