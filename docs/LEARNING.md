@@ -303,3 +303,49 @@ an after-hours chain with no live prices.
 ### Keep-alive
 GitHub pauses schedules in a public repo after 60 days with no activity. Our daily commits go to the private repo, so on
 the 1st of each month `keep-alive` writes the date into `status/last_run.txt` here and commits it.
+
+## Private dashboard (phase 5)
+
+The dashboard at `markets-digest.pages.dev` is a **static site**: plain HTML, CSS and JavaScript files, with no server
+code and no database. The browser downloads them and draws the page itself from two data files.
+
+### Static site and direct upload
+`python -m pipeline.site_data` builds the folder `_site/`: the page from `site/`, plus `latest.json` and `history.json`
+(a year of daily closes per instrument, with the 50- and 200-day averages at each day, for the charts). The intraday
+workflow then uploads `_site/` to **Cloudflare Pages** with Cloudflare's `wrangler` tool ("direct upload"). Cloudflare
+never sees the GitHub repo, and `_site/` is in `.gitignore`, so the data never enters the public repo. `end-of-day` deploys
+once more after the US close (21:00 UTC), so evenings and weekends show closing prices.
+
+### Cloudflare Access and the one-time PIN
+Access is a gate in front of the whole site, every file included. A visitor first goes to a Cloudflare login page, types
+an email address, and gets a 6-digit code only if that address is on the "Readers" list. After that a cookie keeps them
+signed in for a month. We tested from outside: `/`, `/latest.json` and preview addresses like
+`preview.markets-digest.pages.dev` all answer `302` (a redirect to the login page) instead of the content.
+
+### Preview deployments
+Each upload to Cloudflare Pages also gets its own address (`<id>.markets-digest.pages.dev`), and uploads to a branch other
+than `main` become "previews" at `<branch>.markets-digest.pages.dev`. Old data stays reachable at those addresses, so the
+Access application covers `*.markets-digest.pages.dev` as well as the main address.
+
+### Content Security Policy (CSP)
+A header the server sends with the page, listing where the page may load things from. Ours (`site/_headers`) allows
+scripts, styles and data only from our own site, and frames only from TradingView. If anything tried to inject a script
+(say, a hostile instrument name in the data), the browser would refuse to run it. As a second guard, `app.js` only ever
+inserts text with `textContent`, which shows `<script>` as plain characters instead of running it.
+
+### Why the charting library lives in the repo
+`site/vendor/uPlot.iife.min.js` is uPlot 1.6.32, downloaded once from npm and checked against npm's published checksum
+(`sha512-KIMVnG68…`). Loading it from a CDN instead would mean trusting that server on every page view; a copy in the repo
+can only change through a commit we can see.
+
+### Moving averages on the chart
+Each chart line is a series of averages: on every day, the mean of the last 50 (or 200) closes up to that day. The averages
+use closes from before the chart's first day too, so the lines start at the left edge. Example from the data: on
+2026-11-20 the S&P 500 closed at 7,054, below its 50-day average (7,628, −7.5%) and its 200-day average (7,349, −4.0%).
+For yields, the distance from an average is in basis points, not %: the US 10-year at 4.94% sat 13.4 bp below its 50-day
+average.
+
+### Explain terms
+A switch at the top shows or hides the plain-English notes. The reader's choice is saved in their own browser
+(`localStorage`), so it is remembered on that device only and never sent anywhere. If the browser blocks storage (e.g. a
+private window), the switch still works and simply starts "on" next time.
