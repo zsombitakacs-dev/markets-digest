@@ -15,3 +15,6 @@ markets-digest-data/
 
 # The built dashboard (site/ plus private data), deployed to Cloudflare only. Never commit it.
 _site/
+
+# Working notes for the next chat session. Not for the public repo.
+HANDOFF.md
