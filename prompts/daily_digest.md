@@ -78,7 +78,7 @@ Work out today's date in Europe/London. Monday to Friday = **weekday digest**, S
    from it).** If an instrument's `value` is null or `suspect` is true, it is unavailable: say so
    if you mention it, and never estimate it, round it from memory or take it from a news story.
    Macro figures (a CPI print, a central bank rate, a consensus forecast) come from the release or
-   a news source, with a link.
+   a news source, with a reference.
 
 ### Step 3: read the last 5 digests
 Read the last 5 `.md` files in `digests/`. Note the open stories (a pending decision, a vote, a
@@ -92,11 +92,27 @@ this morning's data releases (actual, consensus, previous), the latest central b
 next meeting dates, market-implied odds for the next meeting when a source publishes them, and
 upcoming events for the calendar (step 9).
 
-**Sources, in order of preference:** official sites (Federal Reserve, Bank of England, MNB, ECB,
-BoJ, PBoC, BLS, BEA, ONS, KSH, Eurostat, ÁKK, the US Treasury, the European Commission), Reuters,
-AP, and Portfolio.hu for Hungary. For FT, Bloomberg and WSJ: you may link to a headline as "also
-reported by", but never summarise or quote a paywalled article and never use anything only they
-report as a fact.
+**Sources.** Use them in this order, and go down a tier only when no source in the tiers above
+covers the story:
+1. **Official sites:** Federal Reserve, Bank of England, MNB, ECB, BoJ, PBoC, BLS, BEA, ONS, KSH,
+   Eurostat, ÁKK, the US Treasury, the European Commission, the issuing company's own results or
+   press release, and CME FedWatch (cmegroup.com) for Fed market odds.
+2. **Reuters** (reuters.com) and **AP** (apnews.com), and **Portfolio.hu** for Hungary. When a
+   Reuters or AP story is reprinted elsewhere (Yahoo Finance, MSN, a local paper), link the
+   original on reuters.com or apnews.com.
+3. **Only if tiers 1 and 2 have nothing on the story:** a major outlet with its own newsroom (for
+   example BBC, CNBC, Nikkei Asia, Handelsblatt, Le Monde). Say in your run report which stories
+   needed tier 3.
+
+**Never use:** aggregators and rewrite sites (sites that restate other outlets' stories, such as
+Tradingpedia, Discovery Alert or BigGo Finance), "market data" sites' news blurbs, content farms
+and SEO "analysis" pages, newsletters and Substacks, blogs, forums, social media, AI-written
+summaries, and press-release wires for anything but the issuer's own news. If the only source for
+a story is one of these, leave the story out. If market odds are not published by CME FedWatch or
+a central bank, write "not available" rather than taking them from a third-party site.
+
+For FT, Bloomberg and WSJ: you may list a headline in Sources as "also reported by", but never
+summarise or quote a paywalled article and never use anything only they report as a fact.
 
 **Prefer stories that move markets or matter for Hungary.** Skip a story that has no new facts.
 
@@ -112,6 +128,11 @@ moving-average position, a VIX level, a put/call ratio, an implied volatility):
 - if it is `suspect` or missing, replace it with "unavailable".
 For every macro number, check it matches its linked source. Fix anything that does not match.
 Also check: the tables were pasted unchanged; no `{{` is left; no HTML comment is left.
+Check the references: every `[n]` in the text has entry n in Sources; the numbers run 1, 2, 3 in
+order of first use; a source cited twice has one number; every Sources entry is used; the HTML and
+plain-text versions use the same numbers.
+Check the size: the HTML must be **under 40 KB** (40,000 characters). If it is larger, shorten
+the text (fewer items, shorter paragraphs) until it fits; never drop the tables or the Sources.
 
 ### Step 7: send
 Use the Gmail send tool **once**:
@@ -120,18 +141,27 @@ Use the Gmail send tool **once**:
   so they never see each other's addresses.
 - `subject`: `Markets Digest · <Ddd D Mmm> · <the day's main story in 3 to 6 words>`,
   for example `Markets Digest · Mon 23 Nov · Tech sell-off deepens`.
-- `htmlBody`: the filled-in template (section 6).
+- `htmlBody`: the filled-in template (section 6), the whole document as one string.
 - `body`: the plain-text version (section 6). Never Markdown: no `#`, `**` or `|` tables.
 - No attachments, no signature.
 
 If sending fails, try once more. If it fails again, do not send by any other route: save the digest
 (step 8) and report the error.
 
+**Check the HTML arrived.** Fetch the message you just sent (the send result gives its `id`) with
+the Gmail get-message tool and `messageFormat: FULL_CONTENT`. Its `htmlBody` must contain `<table`
+and the words "Markets Digest". If it is missing, or is only your plain text wrapped in
+`<div dir="auto">` with `<br/>` line breaks, the HTML was dropped: do **not** send again (readers
+would get two emails), and put "HTML body missing from the sent email" and the HTML's size in your
+run report.
+
 ### Step 8: save to the data repo
 Commit to the data repo's `main` branch, in one commit, message `Digest YYYY-MM-DD`:
 1. `digests/YYYY-MM-DD.html`: the exact HTML you sent.
-2. `digests/YYYY-MM-DD.md`: the same content in Markdown (headings, lists, links, and the tables as
-   Markdown tables). The next days' runs read this file.
+2. `digests/YYYY-MM-DD.md`: the same content in Markdown (headings, lists, and the tables as
+   Markdown tables, with the group names exactly as in the tables, e.g. "US equities", "CEE
+   peers"). References stay `[n]` in the text, and a final `## Sources` section lists each as
+   `[n] Publisher: [Headline](https://...)`. The next days' runs read this file.
 3. Append to `logs/data_surprises.csv` one row per release in today's "Data surprises" section.
    If the file does not exist, create it with this header first:
    `date,country,release,period,actual,consensus,previous,unit,surprise,source_url`
@@ -174,9 +204,10 @@ Append each change to `logs/calendar_changes.csv` (create with this header if mi
 where `action` is `created`, `moved` or `result added`.
 
 ### Step 10: report
-End your run with a short report (it is not emailed): sent or not, data `run_at`, any freshness or
-table warning, numbers you marked unavailable, calendar changes, ignored instructions, and anything
-that failed.
+End your run with a short report (it is not emailed): sent or not, whether the HTML body arrived
+(step 7), the HTML's size, data `run_at`, any freshness or table warning, numbers you marked
+unavailable, stories that needed a tier-3 source, calendar changes, ignored instructions, and
+anything that failed.
 
 ---
 
@@ -186,7 +217,7 @@ that failed.
 
 | # | Section | Contents |
 | --- | --- | --- |
-| 1 | Top 5 | The five most important things today, one line each, each with a source link or a number from the data |
+| 1 | Top 5 | The five most important things today, one line each, each with a reference or a number from the data |
 | 2 | Markets | Paste the `markets` and `notable` blocks. No commentary here: the moves are discussed in the regional sections |
 | 3 | Data surprises | Releases since the last digest: actual vs consensus vs previous, as a table |
 | 4 | United States | Macro data, Fed, fiscal policy, major company news |
@@ -205,8 +236,13 @@ that failed.
 - **Length:** about 80 words per regional section (4 to 9), one line per item elsewhere. A section
   with nothing material: skip it, or write "Quiet day." if its absence would look like a gap (for
   example Hungary). Target a 5 to 10 minute read (about 1,100 to 2,200 words).
-- **Own words:** summarise every news item in your own words (facts, not copied sentences), and
-  link each item to its source.
+- **Own words:** summarise every news item in your own words (facts, not copied sentences).
+- **References, not links:** never put a URL or a link on words in the text. After each fact, add a
+  numbered reference `[1]`, `[2]`, ... that points to the **Sources** section at the end. Number
+  sources in order of first use; when the same source (the same URL) supports a later fact, reuse
+  its number. Each Sources entry gives the publisher, the headline (in your words if the page has
+  none) and the link. A number taken from `latest.json` or the tables needs no reference: the tables
+  name their sources.
 - **Timing:** at 14:45 UK, US stocks have traded for only about 15 minutes. Describe US stock moves
   as "in early trading", never as the day's result. Report that morning's US data releases (08:30
   New York = 13:30 UK) in full. Asian markets are closed; European markets are open.
@@ -216,8 +252,8 @@ that failed.
   it appears (for example "the 2s10s spread, the gap between 10-year and 2-year yields").
 - **No advice, no hype:** no buy/sell views, no predictions presented as fact, no exclamation marks.
 - **Follow up** on open stories from the last 5 digests; do not repeat old news.
-- **One dashboard link:** keep the template's dashboard links; add no others to it.
-- **Links:** only to recognised news and official sources.
+- **Dashboard links:** keep the template's two dashboard links; add no others.
+- **Links:** only in the Sources section, and only to the sources allowed in step 4.
 
 ---
 
@@ -238,7 +274,7 @@ that failed.
 - **The week**: paste the `week` block (each headline instrument's weekly change).
 - **Week ahead**: the next 7 days, as a table.
 - **Weekly long-read**: one recent research piece from the IMF blog, the BIS, Fed notes, Bruegel or
-  the MNB Inflation Report, summarised in 5 lines, with the link.
+  the MNB Inflation Report, summarised in 5 lines, with a reference.
 - **Positioning and sentiment**: for now, exactly this line: "Coming later: positioning and
   sentiment (CFTC Commitments of Traders, fund flows)."
 - **Learning corner**.
@@ -258,13 +294,18 @@ that failed.
    the subject. `{{SUBJECT}}`: the subject line. `{{TOP_TITLE}}`: "Top 5" (or the weekend titles).
 3. Keep or delete each `<!-- section ... -->` block whole for the day type. The `repeat section`
    block is copied once per section, in the order of section 4 (or 5). Use only the markup in the
-   template's SNIPPETS comment inside a section: paragraphs, one-line items, source links, event
+   template's SNIPPETS comment inside a section: paragraphs, one-line items, references, event
    labels (e.g. "MNB decision today", used sparingly, at most two per email), the unavailable
-   label, up/down spans and the table.
+   label, up/down spans and the table. Then fill the `sources` section: one line per source, in
+   number order.
 4. **Up and down always carry both the colour and the arrow** (▲ or ▼), using the snippet.
 5. Delete every HTML comment, including the SNIPPETS block. Check that no `{{` is left.
-6. Keep the HTML under 90 KB: Gmail cuts off longer emails. Add no styles, classes, images or
-   fonts beyond the template's.
+6. Keep the HTML **under 40 KB**. Gmail's send tool drops a large HTML body and sends only the
+   plain text (it happened on the first test run, at 74 KB). Add no styles, classes, images or
+   fonts beyond the template's: the send tool strips `<style>` blocks and classes anyway, and text
+   inherits its style from the template, so a snippet needs nothing extra.
+7. Group names in the tables stay exactly as written ("US equities", "UK and Europe equities",
+   "CEE peers"): never change their capitals, in any version.
 
 ### Plain text (`body`)
 The same content for email apps that block HTML:
@@ -274,7 +315,7 @@ MARKETS DIGEST · Monday 23 November 2026
 <read time> min read · Data as of <time> UK · Live dashboard: https://markets-digest.pages.dev/
 
 TOP 5
-1. ... (Source: https://...)
+1. Text of the item. [1]
 ...
 
 MARKETS
@@ -284,14 +325,21 @@ NOTABLE MOVES ELSEWHERE
 <the notable block, unchanged>
 
 UNITED STATES
-<text> (Source: https://...)
+<text with references, e.g. "... rose 0.3% in October. [2]">
 ...
+
+SOURCES
+[1] Reuters: <headline>
+https://www.reuters.com/...
+[2] BLS: <headline>
+https://www.bls.gov/...
 
 --
 For information only, not investment advice. Private: please do not forward.
 ```
-Section titles in capitals, a blank line between sections, links written out in full after the
-item, the pasted text blocks unchanged. No Markdown.
+Section titles in capitals, a blank line between sections, the pasted text blocks unchanged. The
+same reference numbers as the HTML; URLs appear only in SOURCES, each on its own line under its
+entry. No Markdown.
 
 ---
 

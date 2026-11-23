@@ -71,9 +71,10 @@ class Week(unittest.TestCase):
 
 class Html(unittest.TestCase):
     def test_range_bar_fill(self):
-        # 75 is three quarters of the way from 0 to 100: 45 of 60 px filled.
-        self.assertIn('width="45"', et.range_bar(row(value=75.0, low_52w=0.0, high_52w=100.0)))
-        self.assertIn('width="2"', et.range_bar(row(value=0.0, low_52w=0.0, high_52w=100.0)))  # never zero-width
+        # 75 is three quarters of the way from 0 to 100: 6 of the 8 segments filled.
+        self.assertIn("▰▰▰▰▰▰▱▱<", et.range_bar(row(value=75.0, low_52w=0.0, high_52w=100.0)))
+        self.assertIn(">▱▱▱▱▱▱▱▱<", et.range_bar(row(value=0.0, low_52w=0.0, high_52w=100.0)))   # at the low
+        self.assertIn(">▰▰▰▰▰▰▰▰<", et.range_bar(row(value=100.0, low_52w=0.0, high_52w=100.0)))  # at the high
         self.assertIn("–", et.range_bar(row(low_52w=None, high_52w=None)))
 
     def test_outside_text_is_escaped(self):
@@ -88,6 +89,12 @@ class Html(unittest.TestCase):
         self.assertIn("Unavailable", html)
         self.assertNotIn("123.45", html)
         self.assertIn("Test: unavailable (flagged as suspect)", text)
+
+    def test_group_names_keep_their_capitals(self):
+        html, text = et.render({"run_at": NOW.isoformat(), "instruments": {"x": row()}, "options": {}},
+                               [{"id": "x", "group": "CEE peers", "email": True}], {}, NOW)
+        self.assertIn("\nCEE peers\n", text)  # not "CEE PEERS", which the digest task once turned into "Cee Peers"
+        self.assertIn(">CEE peers<", html)
 
 
 if __name__ == "__main__":

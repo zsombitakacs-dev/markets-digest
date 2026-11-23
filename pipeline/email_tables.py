@@ -9,7 +9,7 @@ Each file starts with `run_at: <the latest.json run time>` and holds four blocks
   notable   other instruments that moved unusually today or crossed a moving average
   options   the SPY/QQQ options block
   week      each headline instrument over the last week (used in the Sunday recap)
-The HTML uses inline styles plus the class names that templates/email.html styles for dark mode.
+The HTML is inline styles only: Gmail's send tool strips <style> blocks and class names.
 """
 import html
 import json
@@ -24,7 +24,6 @@ from pipeline.site_data import with_latest
 LONDON = ZoneInfo("Europe/London")
 INK, TEXT, MUTED, RULE, BAND = "#1b2f4e", "#1d2430", "#586273", "#d9dee6", "#f3f5f8"
 UP, DOWN, WARN_INK, WARN_WASH, ACC_INK, ACC_WASH = "#17773a", "#b8322a", "#7a4300", "#fff3d6", "#7f4a00", "#fbf1e2"
-FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;"  # headings: Outlook ignores inherited fonts
 UNUSUAL = 2  # a day's move this many times the usual daily move counts as notable
 NOTABLE_MAX = 8
 STATES = {"open": ("●", "Open"), "just opened": ("●", "Just opened"), "pre-market": ("◐", "Pre-market"),
@@ -111,72 +110,73 @@ def week_change(rows):
 
 
 # ---------- HTML pieces ----------
+# Gmail's send tool strips <style>, classes and roles, so everything is inline. To keep the email
+# small (Gmail drops a large HTML body), padding comes from cellpadding, alignment and row
+# shading from attributes, and the text style from the table: cells carry no style of their own.
 
-def td(content, style="", cls="", tag="td", **attrs):
-    extra = "".join(f' {k}="{v}"' for k, v in attrs.items()) + (f' class="{cls}"' if cls else "")
-    return f'<{tag}{extra} style="{style}">{content}</{tag}>'
+F = "font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;"  # on each table: Outlook does not inherit fonts into tables
 
 
-def th(content, style, cls="mut"):
+def table(top=2):
+    return (f'<table width="100%" cellpadding="4" cellspacing="0" border="0" style="{F}border-collapse:collapse;'
+            f'border-top:{top}px solid {INK};border-bottom:{top}px solid {INK};font-size:14px;line-height:19px;'
+            f'color:{TEXT};font-variant-numeric:tabular-nums">')
+
+
+def th(text, align="left"):
     """A column header: a real <th>, so screen readers announce each number with its column."""
-    return td(content, style, cls, tag="th", scope="col")
+    return f'<th align="{align}" style="font-size:12px;font-weight:600;color:{MUTED};border-bottom:1px solid {INK}">{text}</th>'
 
 
-CELL = f"padding:7px 6px;border-bottom:1px solid {RULE};vertical-align:top;"
-NUM = CELL + "text-align:right;white-space:nowrap;"
-HEAD = f"padding:6px 6px;font-size:12px;line-height:16px;font-weight:600;color:{MUTED};border-bottom:1px solid {INK};"
-TABLE = (f'<table class="txt" width="100%" cellpadding="0" cellspacing="0" border="0" '
-         f'style="border-collapse:collapse;border-top:2px solid {INK};border-bottom:2px solid {INK};'
-         f'font-size:14px;line-height:20px;color:{TEXT};font-variant-numeric:tabular-nums;">')
+def tr(cells, banded):
+    return f'<tr bgcolor="{BAND}">{cells}</tr>' if banded else f"<tr>{cells}</tr>"
+
+
+def small(text):
+    return f'<span style="color:{MUTED};font-size:12px">{text}</span>'
 
 
 def change_cell(r):
     text, d = move(r.get("change"), r.get("change_unit", "%"))
-    color = {"up": UP, "dn": DOWN}.get(d, MUTED)
-    return td(text, NUM + f"color:{color};font-weight:600;", d or "mut")
+    return f'<td align="right" nowrap style="color:{ {"up": UP, "dn": DOWN}.get(d, MUTED)}"><b>{text}</b></td>'
 
 
 def ma_cell(r, n):
     above, crossed = r.get(f"above_sma{n}"), r.get(f"crossed_sma{n}")
     if above is None:
-        return td("–", NUM + f"text-align:center;padding:7px 3px;color:{MUTED};", "mut")
+        return f'<td align="center" style="color:{MUTED}">–</td>'
     arrow = "↑" if above else "↓"
     if crossed:  # the one place the email uses the accent: a crossing since the last run
-        return td(f'<span class="acc" style="background:{ACC_WASH};color:{ACC_INK};padding:0 4px;border-radius:3px;font-weight:700;">{arrow}</span>',
-                  NUM + "text-align:center;padding:7px 3px;")
-    return td(arrow, NUM + f"text-align:center;padding:7px 3px;color:{INK};", "ink")
+        return f'<td align="center"><b style="background:{ACC_WASH};color:{ACC_INK};padding:0 3px">{arrow}</b></td>'
+    return f'<td align="center" style="color:{INK}">{arrow}</td>'
 
 
-def range_bar(r, width=60):
-    """Where the value sits between its 52-week low and high: a navy fill from the low, in table cells."""
+BAR = 8  # segments in the 52-week range bar
+
+
+def range_bar(r):
+    """Where the value sits between its 52-week low (▱▱▱) and high (▰▰▰), in characters, not images."""
     lo, hi, v = r.get("low_52w"), r.get("high_52w"), r.get("value")
     if lo is None or hi is None or hi <= lo:
-        return f'<span class="mut" style="color:{MUTED};">–</span>'
-    fill = max(2, min(width - 2, round((v - lo) / (hi - lo) * width)))  # never a zero-width cell
-    cell = "font-size:0;line-height:0;height:6px;"
-    return (f'<table role="presentation" width="{width}" cellpadding="0" cellspacing="0" border="0" '
-            f'style="border-collapse:collapse;margin:7px 0 0 auto;"><tr>'
-            f'<td width="{fill}" class="ink-bg" style="{cell}background:{INK};">&nbsp;</td>'
-            f'<td width="{width - fill}" class="bar" style="{cell}background:{RULE};">&nbsp;</td></tr></table>')
+        return small("–")
+    n = max(0, min(BAR, round((v - lo) / (hi - lo) * BAR)))
+    return f'<span style="color:{INK};font-size:9px">{"▰" * n}{"▱" * (BAR - n)}</span>'
 
 
 def unavailable(r):
     why = "flagged as suspect by the sanity checks" if r.get("suspect") else (r.get("missing_reason") or "no value")
-    return (f'<span class="warn" style="background:{WARN_WASH};color:{WARN_INK};padding:1px 6px;border-radius:3px;'
-            f'font-size:12px;font-weight:600;">Unavailable</span> <span class="mut" style="color:{MUTED};font-size:12px;">'
-            f'{e(why[:80])}</span>')
+    return (f'<b style="background:{WARN_WASH};color:{WARN_INK};padding:0 5px;font-size:12px">Unavailable</b> '
+            + small(e(why[:80])))
 
 
-def name_span(r):
-    return f'<span class="ink" style="color:{INK};font-weight:600;">{e(r["name"])}</span>'
+def name_html(r):
+    return f'<b style="color:{INK}">{e(r["name"])}</b>'
 
 
 def name_cell(r, now):
     # On a narrow phone the label may break only after the "·", never inside "20 Nov"
     under = " · ".join(x.replace(" ", "&nbsp;") for x in state(r, now).split(" · ")) if r.get("value") is not None else ""
-    return td(name_span(r)
-              + (f'<br><span class="mut" style="color:{MUTED};font-size:12px;line-height:16px;">{under}</span>' if under else ""),
-              CELL + "padding-left:8px;")
+    return f"<td>{name_html(r)}" + (f"<br>{small(under)}" if under else "") + "</td>"
 
 
 def sources_line(rows):
@@ -184,20 +184,17 @@ def sources_line(rows):
     return ", ".join(names)
 
 
-def caption(n, title):
-    return (f'<h2 class="ink" style="{FONT}margin:0 0 10px;font-size:18px;line-height:24px;font-weight:650;color:{INK};">'
-            f'<span class="mut" style="font-size:13px;font-weight:600;color:{MUTED};">Table {n}&nbsp;&nbsp;</span>{e(title)}</h2>')
+def caption(title):
+    return f'<h2 style="margin:0 0 8px;font-size:18px;line-height:24px;color:{INK}">{e(title)}</h2>'
 
 
 def note(text):
-    return f'<p class="mut" style="margin:8px 0 0;font-size:12.5px;line-height:18px;color:{MUTED};">{text}</p>'
+    return f'<p style="margin:6px 0 0;font-size:12px;line-height:17px;color:{MUTED}">{text}</p>'
 
 
 def markets_html(latest, instruments, now):
     rows, group, shown, k = [], None, [], 0
-    head = (f'<tr>{th("Instrument", HEAD + "text-align:left;padding-left:8px;", "mut")}{th("Last", HEAD + "text-align:right;", "mut")}'
-            f'{th("Day", HEAD + "text-align:right;", "mut")}{th("50d", HEAD + "text-align:center;padding:6px 3px;", "mut")}'
-            f'{th("200d", HEAD + "text-align:center;padding:6px 3px;", "mut")}{th("52-week range", HEAD + "text-align:right;", "mut hide-sm")}</tr>')
+    head = f'<tr>{th("Instrument")}{th("Last · 52w", "right")}{th("Day", "right")}{th("50d", "center")}{th("200d", "center")}</tr>'
     for inst in instruments:
         if not inst.get("email"):
             continue
@@ -205,20 +202,20 @@ def markets_html(latest, instruments, now):
         shown.append(r)
         if inst["group"] != group:
             group = inst["group"]
-            rows.append(f'<tr>{td(e(group), f"padding:12px 8px 4px;font-size:12.5px;line-height:16px;font-weight:700;color:{INK};border-bottom:1px solid {RULE};", "ink", colspan="6")}</tr>')
+            rows.append(f'<tr><td colspan="5" style="padding-top:12px;font-size:12px;font-weight:700;color:{INK};'
+                        f'border-bottom:1px solid {RULE}">{e(group)}</td></tr>')
             k = 0
         k += 1
-        band = f'class="band" style="background:{BAND};"' if k % 2 == 0 else ""
         if usable(r):
-            cells = (td(level(r["value"], r["kind"]), NUM) + change_cell(r)
-                     + ma_cell(r, 50) + ma_cell(r, 200) + td(range_bar(r), NUM + "padding-top:0;", "hide-sm"))
+            cells = (f'<td align="right" nowrap>{level(r["value"], r["kind"])}<br>{range_bar(r)}</td>'
+                     + change_cell(r) + ma_cell(r, 50) + ma_cell(r, 200))
         else:
-            cells = td(unavailable(r), CELL, colspan="5")
-        rows.append(f"<tr {band}>{name_cell(r, now)}{cells}</tr>")
-    return (caption(1, "Markets") + TABLE + head + "".join(rows) + "</table>"
+            cells = f'<td colspan="4">{unavailable(r)}</td>'
+        rows.append(tr(name_cell(r, now) + cells, k % 2 == 0))
+    return (caption("Markets") + table() + head + "".join(rows) + "</table>"
             + note("Day: change since the previous close (bp = basis points, 0.01 percentage point, for yields and spreads). "
-                   "50d / 200d: ↑ above or ↓ below its 50- or 200-day moving average; highlighted = crossed since the last update. "
-                   "52-week range: the bar fills from the 52-week low (empty) to the high (full). – = not enough history yet. Times are UK time.")
+                   "50d / 200d: ↑ above or ↓ below the 50- or 200-day moving average; highlighted = crossed since the last update. "
+                   "52w: where the price sits in its 52-week range, from ▱▱▱ at the low to ▰▰▰ at the high. – = not enough history yet. Times are UK time.")
             + note(f"Source: {e(sources_line(shown))}. Own calculations. Data as of {uk_time(latest['run_at'])} UK."))
 
 
@@ -235,14 +232,11 @@ def notable(latest, instruments):
 def notable_html(items):
     if not items:
         return note("No other instrument moved unusually or crossed a moving average today.")
-    rows = []
-    for r, why in items:
-        reason = f'<br><span class="mut" style="color:{MUTED};font-size:12px;line-height:16px;">{e("; ".join(why))}</span>'
-        rows.append(f'<tr>{td(name_span(r) + reason, CELL + "padding-left:8px;")}'
-                    f'{td(level(r["value"], r["kind"]), NUM)}{change_cell(r)}</tr>')
-    return (f'<h3 class="ink" style="{FONT}margin:20px 0 8px;font-size:15px;line-height:22px;font-weight:650;color:{INK};">Notable moves elsewhere</h3>'
-            + TABLE.replace(f"border-top:2px solid {INK};", f"border-top:1px solid {INK};").replace(f"border-bottom:2px solid {INK};", f"border-bottom:1px solid {INK};")
-            + "".join(rows) + "</table>"
+    rows = [tr(f'<td>{name_html(r)}<br>{small(e("; ".join(why)))}</td>'
+               f'<td align="right" nowrap>{level(r["value"], r["kind"])}</td>{change_cell(r)}', k % 2)
+            for k, (r, why) in enumerate(items)]
+    return (f'<h3 style="margin:18px 0 6px;font-size:15px;line-height:21px;color:{INK}">Notable moves elsewhere</h3>'
+            + table(1) + "".join(rows) + "</table>"
             + note(f"An unusual move is at least {UNUSUAL}× the usual daily move, which is the 20-day realised volatility divided by √252."))
 
 
@@ -264,20 +258,17 @@ def options_rows(o):
 
 def options_html(opts):
     syms = list(opts)
-    table = {s: options_rows(opts[s]) for s in syms}
-    good = [s for s in syms if table[s]]
+    rows_by = {s: options_rows(opts[s]) for s in syms}
+    good = [s for s in syms if rows_by[s]]
     if not good:
-        return caption(2, "Options") + note("Options data unavailable: " + e("; ".join(f"{s}: {opts[s].get('missing_reason', 'no data')}" for s in syms)))
-    head = th("Measure", HEAD + "text-align:left;padding-left:8px;") + "".join(th(e(s), HEAD + "text-align:right;", "mut") for s in good)
-    body = []
-    for k, (label, _) in enumerate(table[good[0]]):
-        band = f'class="band" style="background:{BAND};"' if k % 2 else ""
-        body.append(f'<tr {band}>{td(label, CELL + f"padding-left:8px;color:{INK};", "ink")}'
-                    + "".join(td(table[s][k][1], CELL + "text-align:right;") for s in good) + "</tr>")
+        return caption("Options") + note("Options data unavailable: " + e("; ".join(f"{s}: {opts[s].get('missing_reason', 'no data')}" for s in syms)))
+    head = "<tr>" + th("Measure") + "".join(th(e(s), "right") for s in good) + "</tr>"
+    body = [tr(f'<td style="color:{INK}">{label}</td>' + "".join(f'<td align="right">{rows_by[s][k][1]}</td>' for s in good), k % 2)
+            for k, (label, _) in enumerate(rows_by[good[0]])]
     first = opts[good[0]]
     exp = lambda ds: ", ".join(date.fromisoformat(d).strftime("%-d %b %Y") for d in ds)
-    missing = [s for s in syms if not table[s]]
-    return (caption(2, "Options, nearest monthly expiry") + TABLE + f"<tr>{head}</tr>" + "".join(body) + "</table>"
+    missing = [s for s in syms if not rows_by[s]]
+    return (caption("Options, nearest monthly expiry") + table() + head + "".join(body) + "</table>"
             + (note("Unavailable: " + e(", ".join(missing))) if missing else "")
             + note(f"Next monthly expiries: {exp(first.get('upcoming_monthly', []))}. Quarterly: {exp(first.get('upcoming_quarterly', []))}.")
             + note(f"Source: Yahoo Finance, delayed about 15 minutes; newest trade {uk_time(first['time'])} UK. Own calculations."))
@@ -296,17 +287,16 @@ def week_rows(latest, instruments, hist):
 def week_html(rows):
     body = []
     for k, (r, w) in enumerate(rows):
-        band = f'class="band" style="background:{BAND};"' if k % 2 else ""
         if w:
             last, day, before = w
             ch = indicators.change(last, before, r["kind"])
-            cells = td(level(last, r["kind"]), NUM) + change_cell({"change": ch, "change_unit": r.get("change_unit", "%")})
+            cells = f'<td align="right" nowrap>{level(last, r["kind"])}</td>' + change_cell({"change": ch, "change_unit": r.get("change_unit", "%")})
         else:
-            cells = td('<span class="mut" style="color:' + MUTED + ';">Not enough history yet</span>', NUM, colspan="2")
-        body.append(f'<tr {band}>{td(name_span(r), CELL + "padding-left:8px;")}{cells}</tr>')
-    head = th("Instrument", HEAD + "text-align:left;padding-left:8px;", "mut") + th("Close", HEAD + "text-align:right;", "mut") + th("Week", HEAD + "text-align:right;", "mut")
-    return (caption(3, "The week") + TABLE + f"<tr>{head}</tr>" + "".join(body) + "</table>"
-            + note("Week: last close against the last close at least 7 days earlier. Source: as Table 1. Own calculations."))
+            cells = f'<td colspan="2" align="right">{small("Not enough history yet")}</td>'
+        body.append(tr(f"<td>{name_html(r)}</td>{cells}", k % 2))
+    head = f'<tr>{th("Instrument")}{th("Close", "right")}{th("Week", "right")}</tr>'
+    return (caption("The week") + table() + head + "".join(body) + "</table>"
+            + note("Week: last close against the last close at least 7 days earlier. Source: as the markets table. Own calculations."))
 
 
 # ---------- plain text ----------
@@ -338,7 +328,7 @@ def render(latest, instruments, hist, now):
         if i.get("email"):
             if i["group"] != group:
                 group = i["group"]
-                t_markets.append(f"\n{group.upper()}")
+                t_markets.append(f"\n{group}")  # the name exactly as configured, e.g. "US equities"
             t_markets.append(text_line(latest["instruments"][i["id"]], now))
     t_markets.append(f"\nSource: {sources_line(core)}. Own calculations. Data as of {uk_time(latest['run_at'])} UK.")
     t_notable = [f"{r['name']}: {level(r['value'], r['kind'])}, {move(r['change'], r['change_unit'])[0]}: {'; '.join(w)}" for r, w in items] \

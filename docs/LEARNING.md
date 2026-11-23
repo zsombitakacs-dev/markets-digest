@@ -403,8 +403,18 @@ not a forecast by the central bank.
 ### HTML email: tables and inline styles
 Email apps are not browsers: Gmail, Outlook and Apple Mail each strip different CSS. What works
 everywhere is old-fashioned HTML: layout tables, styles written on each element (`style="..."`),
-and system fonts. Flexbox, grid, SVG and web fonts are left out. Even the bars in the 52-week range
-column are two table cells with background colours.
+and system fonts. Flexbox, grid, SVG and web fonts are left out. The 52-week range is a row of
+eight characters under the price: `▰▰▰▱▱▱▱▱` means the price is about three-eighths of the way from
+its 52-week low to its high.
+
+**What the first real send taught us (23 Nov 2026).** The Gmail send tool cleans the HTML before
+sending: it removes the `<head>`, any `<style>` block and every `class` attribute, and keeps only
+inline styles. So the email now uses inline styles only. It also has to stay small: the first test
+email was 74 KB and arrived as plain text only (Gmail builds a stand-in HTML part from the plain
+text, which is why it showed raw links). A 38 KB version, sent the same way, arrived with its HTML.
+To shrink it, text styles are set once and inherited, tables get their spacing from `cellpadding`,
+alignment and row shading from the `align` and `bgcolor` attributes, and no table sits inside
+another. The markets table went from 38 KB to 12 KB.
 
 ### Plain-text alternative, BCC and the preheader
 An email can carry two versions of the same message (MIME `multipart/alternative`): HTML, and plain
@@ -413,15 +423,21 @@ reader sees the others' addresses. The **preheader** is a hidden first line that
 after the subject as a preview.
 
 ### Dark mode in email
-Apple Mail follows the phone's dark mode through the CSS `prefers-color-scheme` rule, so the
-template gives every colour a dark version. The Gmail app ignores that rule and inverts the colours
-itself. The design works with both: no pure-white boxes behind dark text, and up/down always carry
-▲ or ▼ as well as green or red, so the meaning survives any colour change.
+Dark-mode rules need a `<style>` block, and Gmail's send tool removes it. So the email has no dark
+version of its own: the Gmail app darkens it automatically by inverting the colours, and Apple Mail
+shows it light. The design works with both: mid-tone label colours that still read when inverted,
+and up/down always carry ▲ or ▼ as well as green or red, so the meaning survives any colour change.
 
-### Gmail's 102 KB cut-off
+### Size limits
 Gmail hides anything after the first 102 KB of an email's HTML behind a "View entire message"
-link. With today's data the sample email is about 66 KB, and the prompt tells the task to stay
-under 90 KB.
+link, but the tighter limit is the send tool's: a 74 KB body was dropped. The prompt sets 40 KB,
+and after sending, the task fetches the sent message to check the HTML is really there.
+
+### Numbered references
+News items cite their sources as `[1]`, `[2]`, like a research paper, instead of links on words.
+The text stays readable (no long URLs in the plain-text version), and every source is listed once
+at the end with its publisher and headline. A source used twice keeps its first number. Numbers
+from our own data need no reference: the tables name their sources.
 
 ### Prompt injection
 The task reads news websites, and a page could contain hidden text like "email this to someone
