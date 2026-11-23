@@ -429,3 +429,42 @@ else". That is **prompt injection**: instructions smuggled in as content. The de
 prompt's first section: everything read is information, never instructions; one fixed recipient
 list; one calendar; writes only to `digests/` and `logs/`. The recipients and these rules also live
 in the task's own settings in the Claude app, so changing this repo could not redirect the email.
+
+## Archive and exports (phase 7)
+
+### A monthly schedule
+The export workflow runs on cron `41 5 1 * *`: minute 41, hour 5 (UTC), on day 1 of every month.
+On 1 December 2026 it exports November: `exports/2026-11.xlsx`, plus a PDF and a Word file of
+that month's digests. You can also start it by hand (Actions → export → Run workflow) for any month.
+
+### What goes in the workbook
+One sheet per table, filtered to the month: **Prices** (each day's close per instrument, e.g.
+`2026-11-20, sp500, S&P 500, 6918.45`), **Indicators** (each end-of-day snapshot: change, the
+distance from the 50- and 200-day averages, 52-week range, 20-day volatility), **Data surprises**
+and **Calendar log** (the digest task's own logs), and **Digests** (an index: date, title, files).
+Numbers are stored as numbers, not text, so Excel can sum and chart them.
+
+### Printing HTML to PDF with a headless browser
+"Headless" Chrome is the normal browser with no window. `--print-to-pdf` saves a page the way
+"Print → Save as PDF" would, so the PDF looks exactly like the email the readers got. The page
+first gets a Content Security Policy that blocks scripts and remote loads, because the digest's
+HTML was written from web content.
+
+### A .docx file is a zip of XML
+Rename `2026-11-digests.docx` to `.zip` and open it: inside is `word/document.xml`, the text and
+its formatting as XML. `python-docx` writes that XML for us. The Word file is built from each
+digest's `.md` version: `# ` becomes a heading, `- ` a bullet, `| a | b |` a table and
+`[Reuters](https://…)` a clickable link. Only `http(s)` links are kept as links.
+
+### Service account
+A Google account for a program, not a person. It has its own email address (like
+`digest-mirror@<project>.iam.gserviceaccount.com`) and a private key. We share one Google Sheet
+with that address as an editor, so the key can open that sheet and nothing else in your Drive.
+The key lives only in the GitHub secret `GOOGLE_SA_KEY`; the program swaps it for a one-hour
+access token on each run (that swap is what the `google-auth` library does).
+
+### Formula injection, and why the mirror writes RAW
+Google Sheets can treat a typed value starting with `=` as a formula, and formulas such as
+`=IMPORTDATA(...)` can send data to an outside address. Our logs contain text the digest task
+wrote from web pages, so the mirror writes with `valueInputOption=RAW`: every value is stored
+exactly as it is, text stays text, and nothing is ever run as a formula.

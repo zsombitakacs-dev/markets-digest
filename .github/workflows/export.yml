@@ -1,0 +1,58 @@
+# On the 1st of each month: last month's Excel workbook, and a PDF and a Word file of its digests,
+# written into the private data repo's exports/. Never into this repo or the dashboard.
+name: export
+
+on:
+  schedule:
+    - cron: "41 5 1 * *"  # 05:41 UTC on the 1st, after the last day's end-of-day run
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "Month to export, YYYY-MM (empty: last month)"
+        required: false
+
+permissions:
+  contents: read  # this repo is only read; the data repo is written with DATA_REPO_TOKEN
+
+concurrency:
+  group: data-repo  # shared with pre-digest and end-of-day, so two runs never push at once
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest  # Google Chrome comes preinstalled; it prints the PDF
+    timeout-minutes: 10
+    env:
+      DATA_DIR: markets-digest-data
+      MONTH: ${{ inputs.month }}  # via env, never pasted into the script, so it can't inject commands
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: zsombitakacs-dev/markets-digest-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: markets-digest-data
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Export
+        run: |
+          pip install --quiet -r requirements.txt
+          python -m pipeline.export $MONTH
+
+      - name: Commit to the data repo
+        working-directory: markets-digest-data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add exports
+          git diff --cached --quiet && exit 0
+          git commit --quiet -m "Monthly export $(date -u +%Y-%m-%d)"
+          git pull --quiet --rebase
+          git push --quiet

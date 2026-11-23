@@ -30,7 +30,9 @@ jobs:
           repository: zsombitakacs-dev/markets-digest-data
           token: ${{ secrets.DATA_REPO_TOKEN }}
           path: markets-digest-data
-          sparse-checkout: data
+          sparse-checkout: |  # logs: read by the Google Sheet mirror
+            data
+            logs
 
       # The newest latest.json from any run (on weekdays, the last intraday one), so
       # crossings, suspect checks and the options block continue from it. See intraday.yml.
@@ -86,3 +88,12 @@ jobs:
         with:
           path: state
           key: state-${{ github.run_id }}
+
+      # Last, so a Google problem never holds up the data or the dashboard. Skips itself (and
+      # passes) until both secrets exist. See pipeline/sheet.py.
+      - name: Mirror to the Google Sheet
+        if: ${{ !cancelled() }}
+        env:
+          GOOGLE_SA_KEY: ${{ secrets.GOOGLE_SA_KEY }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        run: python -m pipeline.sheet
